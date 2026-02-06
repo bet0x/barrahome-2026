@@ -331,6 +331,17 @@ body {
   color: #f0d0e0;
 }
 
+.statusbar-link {
+  color: #f0d0e0;
+  text-decoration: none;
+  border: none;
+}
+
+.statusbar-link:hover {
+  color: #fff;
+  text-shadow: none;
+}
+
 /* Resize grip */
 .window::after {
   content: "";
