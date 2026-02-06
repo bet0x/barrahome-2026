@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="barrahome.org - personal blog, technical notes and experiments">
+  <meta name="author" content="Alberto">
+  <meta name="robots" content="index, follow">
+  <meta property="og:site_name" content="barrahome.org">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="barrahome.org">
+  <meta property="og:description" content="Personal blog, technical notes and experiments">
+  <meta property="og:url" content="https://barrahome.org">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>barrahome.org</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="titlebar-buttons-left">
+        <div class="titlebar-btn">&#9866;</div>
+      </div>
+      <div class="titlebar-title">barrahome.org</div>
+      <div class="titlebar-buttons-right">
+        <div class="titlebar-btn">&#9634;</div>
+        <div class="titlebar-btn">&#10005;</div>
+      </div>
+    </div>
+
+    <div class="main-area">
+      <div class="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-title">Navigation</div>
+          <div class="sidebar-panel">
+            <a href="/" class="sidebar-link">Home</a>
+            <a href="/projects.md" class="sidebar-link">Projects</a>
+            <a href="/contact.md" class="sidebar-link">Contact</a>
+            <a href="/cv.md" class="sidebar-link">CV/Resume</a>
+          </div>
+        </div>
+        <div class="sidebar-section" id="tags-section" style="display:none">
+          <div class="sidebar-title">Tags</div>
+          <div class="sidebar-panel" id="tags-panel"></div>
+        </div>
+      </div>
+
+      <div class="terminal-frame">
+        <div class="terminal">
+          <div class="content">
+            {{content}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span>ready</span>
+      <span>barrahome.org // powered by nginx + markdown</span>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // set page title from first heading
+      var l = ['h1', 'h2', 'h3'];
+      for (var i = 0; i < l.length; i++) {
+        var h = document.getElementsByTagName(l[i]);
+        if (h.length > 0) {
+          document.title = h[0].innerText + ' - barrahome.org';
+          break;
+        }
+      }
+
+      // tag filtering: move tags from content to sidebar
+      var content = document.querySelector('.content');
+      if (!content) return;
+      var firstP = content.querySelector('p:first-child');
+      if (!firstP || !firstP.textContent.match(/Filter:/)) return;
+
+      var tagsSection = document.getElementById('tags-section');
+      var tagsPanel = document.getElementById('tags-panel');
+      var codes = firstP.querySelectorAll('code');
+      var items = content.querySelectorAll('li');
+
+      // move tags to sidebar
+      codes.forEach(function(code) {
+        var btn = document.createElement('a');
+        btn.href = '#';
+        btn.className = 'sidebar-tag';
+        btn.textContent = code.textContent.trim();
+        if (btn.textContent === 'all') btn.classList.add('active');
+        tagsPanel.appendChild(btn);
+      });
+
+      // remove filter line and hr from content
+      var hr = firstP.nextElementSibling;
+      if (hr && hr.tagName === 'HR') hr.remove();
+      firstP.remove();
+
+      tagsSection.style.display = '';
+
+      // hide inline tags from post list
+      items.forEach(function(li) {
+        li.querySelectorAll('code').forEach(function(c) {
+          c.style.display = 'none';
+        });
+      });
+
+      // click handler
+      tagsPanel.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('sidebar-tag')) return;
+        e.preventDefault();
+        var val = e.target.textContent.trim();
+
+        tagsPanel.querySelectorAll('.sidebar-tag').forEach(function(t) {
+          t.classList.remove('active');
+        });
+        e.target.classList.add('active');
+
+        items.forEach(function(li) {
+          if (val === 'all') {
+            li.classList.remove('hidden-tag');
+            return;
+          }
+          var codes = li.querySelectorAll('code');
+          var match = false;
+          codes.forEach(function(c) {
+            if (c.textContent.trim() === val) match = true;
+          });
+          li.classList.toggle('hidden-tag', !match);
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>
