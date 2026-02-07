@@ -220,3 +220,20 @@ Built with Go and HTML/CSS/JS. Requires Windows with Hyper-V and PowerShell modu
 📄 **License:** GPL-3.0
 
 💻 **Repo:** [github.com/bet0x/Hyper-V-Web-Console](https://github.com/bet0x/Hyper-V-Web-Console)
+
+---
+
+## BashBlog
+
+A minimalist blogging platform built entirely in Bash as a CGI application. Drop a markdown file named `YYYY-MM-DD_Title-of-the-post.md` into a directory and it becomes a blog post automatically.
+
+Features:
+
+- Automatic blog post generation from markdown files
+- CGI-based — works with nginx + fcgiwrap
+- Markdown parsing via John Gruber's original Perl tool
+- Simple installation with `make install`
+
+📄 **License:** The Absurd License
+
+💻 **Repo:** [github.com/bet0x/BashBlog](https://github.com/bet0x/BashBlog)
