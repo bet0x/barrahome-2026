@@ -201,3 +201,22 @@ Built with PHP and a shell wrapper. Inspired by [cmdpb](https://github.com/Knigh
 📄 **License:** GPL-3.0
 
 💻 **Repo:** [github.com/bet0x/bpaste](https://github.com/bet0x/bpaste)
+
+---
+
+## Hyper-V-Web-Console
+
+A web-based console for managing Microsoft Hyper-V virtual machines from the browser. Monitor and control VMs without needing RDP or the native Hyper-V Manager.
+
+Features:
+
+- Display virtual machine information
+- Start, restart, and stop VMs
+- HTTP basic authentication
+- Web interface served from localhost
+
+Built with Go and HTML/CSS/JS. Requires Windows with Hyper-V and PowerShell modules.
+
+📄 **License:** GPL-3.0
+
+💻 **Repo:** [github.com/bet0x/Hyper-V-Web-Console](https://github.com/bet0x/Hyper-V-Web-Console)
