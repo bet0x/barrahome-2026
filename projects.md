@@ -57,3 +57,41 @@ Available on PyPI: `pip install semlix[semantic]`
 **License:** BSD 2-Clause
 **Docs:** [semlix.readthedocs.io](https://semlix.readthedocs.io/)
 **Repo:** [github.com/semlix/semlix](https://github.com/semlix/semlix)
+
+---
+
+## broadcom_crawler
+
+A Python crawler that automates downloading Broadcom technical documentation and converts it to clean Markdown files with structured metadata. Designed to make vendor docs accessible for RAG pipelines and AI-augmented research.
+
+Features:
+
+- Recursive crawling of Broadcom documentation pages
+- HTML to Markdown conversion with clean output
+- Hierarchical organization: `docs/<product>/<version>/<section>/<page>.md`
+- YAML frontmatter with source URL, product, version, and breadcrumbs
+- TOC extraction from dynamic JSON endpoints
+- Built-in rate limiting and preview mode
+- Kubernetes deployment configs included
+
+**License:** MIT
+**Repo:** [github.com/bet0x/broadcom_crawler](https://github.com/bet0x/broadcom_crawler)
+
+---
+
+## readability-server
+
+A REST API server that wraps Mozilla Readability to extract clean, readable content from web pages. Send it a URL, get back the article content in HTML, Markdown, or plain text — with metadata like title, author, and publication date.
+
+Features:
+
+- Multiple output formats: HTML, Markdown, plain text
+- Rate limiting, compression, and security headers for production use
+- Interactive API docs via Scalar and Swagger UI
+- Health checks and metrics endpoints
+- Optional API key authentication
+- Docker support with pre-built images on Docker Hub (`barrahome/readability-server`)
+
+Built with Node.js, Express, and Mozilla Readability.
+
+**Repo:** [github.com/bet0x/readability-server](https://github.com/bet0x/readability-server)
