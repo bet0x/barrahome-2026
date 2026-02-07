@@ -16,8 +16,9 @@ Features:
 
 Fork of [ukarim/ngx_markdown_filter_module](https://github.com/ukarim/ngx_markdown_filter_module) with added GFM and table support.
 
-**License:** MIT
-**Repo:** [github.com/bet0x/ngx_markdown_filter_module](https://github.com/bet0x/ngx_markdown_filter_module)
+📄 **License:** MIT
+
+💻 **Repo:** [github.com/bet0x/ngx_markdown_filter_module](https://github.com/bet0x/ngx_markdown_filter_module)
 
 ---
 
@@ -34,7 +35,7 @@ The stack:
 
 The entire publishing workflow is: write a `.md` file, run the index generator, commit, push.
 
-**Repo:** [github.com/bet0x/barrahome-2026](https://github.com/bet0x/barrahome-2026)
+💻 **Repo:** [github.com/bet0x/barrahome-2026](https://github.com/bet0x/barrahome-2026)
 
 ---
 
@@ -54,10 +55,13 @@ Features:
 
 Available on PyPI: `pip install semlix[semantic]`
 
-**License:** BSD 2-Clause
-**PyPI:** [pypi.org/project/semlix](https://pypi.org/project/semlix/)
-**Docs:** [semlix.readthedocs.io](https://semlix.readthedocs.io/)
-**Repo:** [github.com/semlix/semlix](https://github.com/semlix/semlix)
+📄 **License:** BSD 2-Clause
+
+📦 **PyPI:** [pypi.org/project/semlix](https://pypi.org/project/semlix/)
+
+📖 **Docs:** [semlix.readthedocs.io](https://semlix.readthedocs.io/)
+
+💻 **Repo:** [github.com/semlix/semlix](https://github.com/semlix/semlix)
 
 ---
 
@@ -75,8 +79,9 @@ Features:
 - Built-in rate limiting and preview mode
 - Kubernetes deployment configs included
 
-**License:** MIT
-**Repo:** [github.com/bet0x/broadcom_crawler](https://github.com/bet0x/broadcom_crawler)
+📄 **License:** MIT
+
+💻 **Repo:** [github.com/bet0x/broadcom_crawler](https://github.com/bet0x/broadcom_crawler)
 
 ---
 
@@ -95,7 +100,7 @@ Features:
 
 Built with Node.js, Express, and Mozilla Readability.
 
-**Repo:** [github.com/bet0x/readability-server](https://github.com/bet0x/readability-server)
+💻 **Repo:** [github.com/bet0x/readability-server](https://github.com/bet0x/readability-server)
 
 ---
 
@@ -115,9 +120,11 @@ Features:
 
 Available on PyPI: `pip install docling-serve-sdk`
 
-**License:** MIT
-**PyPI:** [pypi.org/project/docling-serve-sdk](https://pypi.org/project/docling-serve-sdk/)
-**Repo:** [github.com/bet0x/docling-serve-sdk](https://github.com/bet0x/docling-serve-sdk)
+📄 **License:** MIT
+
+📦 **PyPI:** [pypi.org/project/docling-serve-sdk](https://pypi.org/project/docling-serve-sdk/)
+
+💻 **Repo:** [github.com/bet0x/docling-serve-sdk](https://github.com/bet0x/docling-serve-sdk)
 
 ---
 
@@ -136,8 +143,9 @@ Features:
 
 Available on Docker Hub: `barrahome/unsloth-docker`
 
-**License:** Apache-2.0
-**Repo:** [github.com/bet0x/unsloth-docker](https://github.com/bet0x/unsloth-docker)
+📄 **License:** Apache-2.0
+
+💻 **Repo:** [github.com/bet0x/unsloth-docker](https://github.com/bet0x/unsloth-docker)
 
 ---
 
@@ -156,8 +164,9 @@ Features:
 
 Migrates all core Open WebUI tables: users, auth, chats, files, channels, and configuration.
 
-**License:** Apache-2.0
-**Repo:** [github.com/bet0x/openwebui-migrator](https://github.com/bet0x/openwebui-migrator)
+📄 **License:** Apache-2.0
+
+💻 **Repo:** [github.com/bet0x/openwebui-migrator](https://github.com/bet0x/openwebui-migrator)
 
 ---
 
@@ -167,6 +176,8 @@ A simple Python command-line utility for viewing man pages in a straightforward,
 
 Available on PyPI: `pip install manwrapper`
 
-**License:** MIT
-**PyPI:** [pypi.org/project/manwrapper](https://pypi.org/project/manwrapper/)
-**Repo:** [github.com/bet0x/manwrapper](https://github.com/bet0x/manwrapper)
+📄 **License:** MIT
+
+📦 **PyPI:** [pypi.org/project/manwrapper](https://pypi.org/project/manwrapper/)
+
+💻 **Repo:** [github.com/bet0x/manwrapper](https://github.com/bet0x/manwrapper)
