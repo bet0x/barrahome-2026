@@ -116,3 +116,23 @@ Available on PyPI: `pip install docling-serve-sdk`
 
 **License:** MIT
 **Repo:** [github.com/bet0x/docling-serve-sdk](https://github.com/bet0x/docling-serve-sdk)
+
+---
+
+## unsloth-docker
+
+A Docker environment for fine-tuning large language models using the Unsloth framework with GPU acceleration. Ships with Mistral Small 24B Instruct as the default model but works with any Hugging Face model.
+
+Features:
+
+- Automatic Unsloth installation at startup
+- CUDA/GPU acceleration out of the box
+- Jupyter Notebook and JupyterLab interfaces for interactive training
+- Hugging Face model cache mounting to save bandwidth and startup time
+- Optional Flash Attention for enhanced performance
+- Multiple runtime modes: bash shell, Jupyter, or JupyterLab
+
+Available on Docker Hub: `barrahome/unsloth-docker`
+
+**License:** Apache-2.0
+**Repo:** [github.com/bet0x/unsloth-docker](https://github.com/bet0x/unsloth-docker)
