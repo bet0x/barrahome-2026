@@ -181,3 +181,23 @@ Available on PyPI: `pip install manwrapper`
 📦 **PyPI:** [pypi.org/project/manwrapper](https://pypi.org/project/manwrapper/)
 
 💻 **Repo:** [github.com/bet0x/manwrapper](https://github.com/bet0x/manwrapper)
+
+---
+
+## bpaste
+
+A private, self-hosted pastebin service for the command line. Post, retrieve, update, and delete text snippets via HTTP with basic authentication. A simple alternative to public pastebins when you want to keep your data on your own server.
+
+Features:
+
+- HTTP basic authentication for access control
+- Multiple posting methods: file upload, stdin, direct strings
+- Full CRUD operations on pastes
+- Shell script wrapper for easy CLI usage
+- Flat-file database storage (Lazer Database) — no SQL needed
+
+Built with PHP and a shell wrapper. Inspired by [cmdpb](https://github.com/KnightOS/cmdpb).
+
+📄 **License:** GPL-3.0
+
+💻 **Repo:** [github.com/bet0x/bpaste](https://github.com/bet0x/bpaste)
