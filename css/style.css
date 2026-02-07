@@ -314,6 +314,105 @@ body {
     font-style: italic;
 }
 
+/* CDE Motif inner window - reusable in markdown with markdown_unsafe */
+.cde-window {
+    margin: 1.5rem 0;
+    border-top: 3px solid #d4d7e3;
+    border-left: 3px solid #d4d7e3;
+    border-right: 3px solid #6b6e7a;
+    border-bottom: 3px solid #6b6e7a;
+    background: #aeb2c3;
+}
+
+.cde-window-title {
+    background: #c8a060;
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 4px 10px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
+    border-top: 2px solid #e0c880;
+    border-left: 2px solid #e0c880;
+    border-right: 2px solid #8a6520;
+    border-bottom: 2px solid #8a6520;
+}
+
+.cde-window-menubar {
+    background: #5f9ea0;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 3px 10px;
+    letter-spacing: 0.5px;
+    border-top: 1px solid #8ac5c7;
+    border-bottom: 1px solid #3d6e70;
+}
+
+.cde-window-body {
+    background: #556573;
+    color: #e0e0e0;
+    padding: 1rem 1.2rem;
+    border-top: 3px solid #3d4a56;
+    border-left: 3px solid #3d4a56;
+    border-right: 3px solid #6e7a86;
+    border-bottom: 3px solid #6e7a86;
+    margin: 3px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.cde-window-body h3 {
+    color: #f0d080;
+    font-size: 13px;
+    margin: 1rem 0 0.5rem 0;
+}
+
+.cde-window-body strong {
+    color: #ffffff;
+}
+
+.cde-window-body a {
+    color: #8ec8e8;
+    text-decoration: none;
+    border-bottom: 1px dashed #8ec8e8;
+}
+
+.cde-window-body a:hover {
+    color: #ffffff;
+}
+
+.cde-window-body ul {
+    padding-left: 1.5rem;
+    margin: 0.5rem 0;
+}
+
+.cde-window-body li {
+    margin: 0.2rem 0;
+}
+
+.cde-window-body li::marker {
+    color: #8ec8e8;
+}
+
+.cde-window-body p {
+    margin: 0.6rem 0;
+}
+
+.cde-window-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5rem 0;
+}
+
+.cde-window-body td,
+.cde-window-body th {
+    padding: 3px 8px;
+    border: 1px solid #6e7a86;
+    text-align: left;
+}
+
 /* Hidden tag items */
 .content li.hidden-tag {
     display: none;
