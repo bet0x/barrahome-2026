@@ -35,3 +35,25 @@ The stack:
 The entire publishing workflow is: write a `.md` file, run the index generator, commit, push.
 
 **Repo:** [github.com/bet0x/barrahome-2026](https://github.com/bet0x/barrahome-2026)
+
+---
+
+## semlix
+
+A pure-Python full-text indexing and search library with semantic search capabilities, built on top of Whoosh. It combines traditional keyword matching (BM25/TF-IDF) with AI-powered semantic vector search, so a query like "authentication problems" can match documents containing "login issues" even without shared keywords.
+
+Features:
+
+- Hybrid search merging lexical and semantic vector approaches
+- Multiple embedding providers: sentence-transformers, OpenAI, Cohere, HuggingFace
+- Flexible vector stores: NumPy and FAISS backends
+- Result fusion algorithms: RRF, Linear, DBSF
+- Fielded indexing, pluggable scoring (BM25F), spell-checking
+- Pure Python — no compilation required
+- Backward compatible with Whoosh
+
+Available on PyPI: `pip install semlix[semantic]`
+
+**License:** BSD 2-Clause
+**Docs:** [semlix.readthedocs.io](https://semlix.readthedocs.io/)
+**Repo:** [github.com/semlix/semlix](https://github.com/semlix/semlix)
