@@ -1,8 +1,8 @@
 # Projects
 
----
-
-## ngx_markdown_filter_module
+<div class="cde-window">
+<div class="cde-window-title">ngx_markdown_filter_module</div>
+<div class="cde-window-body">
 
 An nginx filter module that converts markdown files to HTML on the fly. It uses the **cmark** library (or **cmark-gfm** for GitHub Flavored Markdown support) to parse and render markdown directly from nginx, without any static site generator or build step.
 
@@ -17,12 +17,14 @@ Features:
 Fork of [ukarim/ngx_markdown_filter_module](https://github.com/ukarim/ngx_markdown_filter_module) with added GFM and table support.
 
 📄 **License:** MIT
-
 💻 **Repo:** [github.com/bet0x/ngx_markdown_filter_module](https://github.com/bet0x/ngx_markdown_filter_module)
 
----
+</div>
+</div>
 
-## barrahome-2026
+<div class="cde-window">
+<div class="cde-window-title">barrahome-2026</div>
+<div class="cde-window-body">
 
 The source for this site. A markdown-only blog served by nginx using `ngx_markdown_filter_module` — no static generator, no build step, no framework. You write `.md` files, nginx serves them as HTML.
 
@@ -37,9 +39,12 @@ The entire publishing workflow is: write a `.md` file, run the index generator, 
 
 💻 **Repo:** [github.com/bet0x/barrahome-2026](https://github.com/bet0x/barrahome-2026)
 
----
+</div>
+</div>
 
-## semlix
+<div class="cde-window">
+<div class="cde-window-title">semlix</div>
+<div class="cde-window-body">
 
 A pure-Python full-text indexing and search library with semantic search capabilities, built on top of Whoosh. It combines traditional keyword matching (BM25/TF-IDF) with AI-powered semantic vector search, so a query like "authentication problems" can match documents containing "login issues" even without shared keywords.
 
@@ -56,16 +61,16 @@ Features:
 Available on PyPI: `pip install semlix[semantic]`
 
 📄 **License:** BSD 2-Clause
-
 📦 **PyPI:** [pypi.org/project/semlix](https://pypi.org/project/semlix/)
-
 📖 **Docs:** [semlix.readthedocs.io](https://semlix.readthedocs.io/)
-
 💻 **Repo:** [github.com/semlix/semlix](https://github.com/semlix/semlix)
 
----
+</div>
+</div>
 
-## broadcom_crawler
+<div class="cde-window">
+<div class="cde-window-title">broadcom_crawler</div>
+<div class="cde-window-body">
 
 A Python crawler that automates downloading Broadcom technical documentation and converts it to clean Markdown files with structured metadata. Designed to make vendor docs accessible for RAG pipelines and AI-augmented research.
 
@@ -80,12 +85,14 @@ Features:
 - Kubernetes deployment configs included
 
 📄 **License:** MIT
-
 💻 **Repo:** [github.com/bet0x/broadcom_crawler](https://github.com/bet0x/broadcom_crawler)
 
----
+</div>
+</div>
 
-## readability-server
+<div class="cde-window">
+<div class="cde-window-title">readability-server</div>
+<div class="cde-window-body">
 
 A REST API server that wraps Mozilla Readability to extract clean, readable content from web pages. Send it a URL, get back the article content in HTML, Markdown, or plain text — with metadata like title, author, and publication date.
 
@@ -102,9 +109,12 @@ Built with Node.js, Express, and Mozilla Readability.
 
 💻 **Repo:** [github.com/bet0x/readability-server](https://github.com/bet0x/readability-server)
 
----
+</div>
+</div>
 
-## docling-serve-sdk
+<div class="cde-window">
+<div class="cde-window-title">docling-serve-sdk</div>
+<div class="cde-window-body">
 
 A Python SDK for the Docling Serve API. Type-safe document conversion with Pydantic models, async and sync support, and built-in connection pooling and retries.
 
@@ -121,14 +131,15 @@ Features:
 Available on PyPI: `pip install docling-serve-sdk`
 
 📄 **License:** MIT
-
 📦 **PyPI:** [pypi.org/project/docling-serve-sdk](https://pypi.org/project/docling-serve-sdk/)
-
 💻 **Repo:** [github.com/bet0x/docling-serve-sdk](https://github.com/bet0x/docling-serve-sdk)
 
----
+</div>
+</div>
 
-## unsloth-docker
+<div class="cde-window">
+<div class="cde-window-title">unsloth-docker</div>
+<div class="cde-window-body">
 
 A Docker environment for fine-tuning large language models using the Unsloth framework with GPU acceleration. Ships with Mistral Small 24B Instruct as the default model but works with any Hugging Face model.
 
@@ -144,12 +155,14 @@ Features:
 Available on Docker Hub: `barrahome/unsloth-docker`
 
 📄 **License:** Apache-2.0
-
 💻 **Repo:** [github.com/bet0x/unsloth-docker](https://github.com/bet0x/unsloth-docker)
 
----
+</div>
+</div>
 
-## openwebui-migrator
+<div class="cde-window">
+<div class="cde-window-title">openwebui-migrator</div>
+<div class="cde-window-body">
 
 A Python tool for migrating Open WebUI's SQLite database to PostgreSQL. Handles schema conversion, data type mapping, JSON fields, arrays, reserved keywords, and integrity checks — so you don't have to do it manually.
 
@@ -165,26 +178,29 @@ Features:
 Migrates all core Open WebUI tables: users, auth, chats, files, channels, and configuration.
 
 📄 **License:** Apache-2.0
-
 💻 **Repo:** [github.com/bet0x/openwebui-migrator](https://github.com/bet0x/openwebui-migrator)
 
----
+</div>
+</div>
 
-## manwrapper
+<div class="cde-window">
+<div class="cde-window-title">manwrapper</div>
+<div class="cde-window-body">
 
 A simple Python command-line utility for viewing man pages in a straightforward, user-friendly way. No need to remember `man` command flags — just install and use.
 
 Available on PyPI: `pip install manwrapper`
 
 📄 **License:** MIT
-
 📦 **PyPI:** [pypi.org/project/manwrapper](https://pypi.org/project/manwrapper/)
-
 💻 **Repo:** [github.com/bet0x/manwrapper](https://github.com/bet0x/manwrapper)
 
----
+</div>
+</div>
 
-## bpaste
+<div class="cde-window">
+<div class="cde-window-title">bpaste</div>
+<div class="cde-window-body">
 
 A private, self-hosted pastebin service for the command line. Post, retrieve, update, and delete text snippets via HTTP with basic authentication. A simple alternative to public pastebins when you want to keep your data on your own server.
 
@@ -199,12 +215,14 @@ Features:
 Built with PHP and a shell wrapper. Inspired by [cmdpb](https://github.com/KnightOS/cmdpb).
 
 📄 **License:** GPL-3.0
-
 💻 **Repo:** [github.com/bet0x/bpaste](https://github.com/bet0x/bpaste)
 
----
+</div>
+</div>
 
-## Hyper-V-Web-Console
+<div class="cde-window">
+<div class="cde-window-title">Hyper-V-Web-Console</div>
+<div class="cde-window-body">
 
 A web-based console for managing Microsoft Hyper-V virtual machines from the browser. Monitor and control VMs without needing RDP or the native Hyper-V Manager.
 
@@ -218,12 +236,14 @@ Features:
 Built with Go and HTML/CSS/JS. Requires Windows with Hyper-V and PowerShell modules.
 
 📄 **License:** GPL-3.0
-
 💻 **Repo:** [github.com/bet0x/Hyper-V-Web-Console](https://github.com/bet0x/Hyper-V-Web-Console)
 
----
+</div>
+</div>
 
-## BashBlog
+<div class="cde-window">
+<div class="cde-window-title">BashBlog</div>
+<div class="cde-window-body">
 
 A minimalist blogging platform built entirely in Bash as a CGI application. Drop a markdown file named `YYYY-MM-DD_Title-of-the-post.md` into a directory and it becomes a blog post automatically.
 
@@ -235,5 +255,7 @@ Features:
 - Simple installation with `make install`
 
 📄 **License:** The Absurd License
-
 💻 **Repo:** [github.com/bet0x/BashBlog](https://github.com/bet0x/BashBlog)
+
+</div>
+</div>
