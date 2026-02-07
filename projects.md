@@ -55,6 +55,7 @@ Features:
 Available on PyPI: `pip install semlix[semantic]`
 
 **License:** BSD 2-Clause
+**PyPI:** [pypi.org/project/semlix](https://pypi.org/project/semlix/)
 **Docs:** [semlix.readthedocs.io](https://semlix.readthedocs.io/)
 **Repo:** [github.com/semlix/semlix](https://github.com/semlix/semlix)
 
@@ -115,6 +116,7 @@ Features:
 Available on PyPI: `pip install docling-serve-sdk`
 
 **License:** MIT
+**PyPI:** [pypi.org/project/docling-serve-sdk](https://pypi.org/project/docling-serve-sdk/)
 **Repo:** [github.com/bet0x/docling-serve-sdk](https://github.com/bet0x/docling-serve-sdk)
 
 ---
@@ -156,3 +158,15 @@ Migrates all core Open WebUI tables: users, auth, chats, files, channels, and co
 
 **License:** Apache-2.0
 **Repo:** [github.com/bet0x/openwebui-migrator](https://github.com/bet0x/openwebui-migrator)
+
+---
+
+## manwrapper
+
+A simple Python command-line utility for viewing man pages in a straightforward, user-friendly way. No need to remember `man` command flags — just install and use.
+
+Available on PyPI: `pip install manwrapper`
+
+**License:** MIT
+**PyPI:** [pypi.org/project/manwrapper](https://pypi.org/project/manwrapper/)
+**Repo:** [github.com/bet0x/manwrapper](https://github.com/bet0x/manwrapper)
