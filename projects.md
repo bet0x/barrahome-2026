@@ -95,3 +95,24 @@ Features:
 Built with Node.js, Express, and Mozilla Readability.
 
 **Repo:** [github.com/bet0x/readability-server](https://github.com/bet0x/readability-server)
+
+---
+
+## docling-serve-sdk
+
+A Python SDK for the Docling Serve API. Type-safe document conversion with Pydantic models, async and sync support, and built-in connection pooling and retries.
+
+Features:
+
+- Convert between 11+ document formats: PDF, DOCX, PPTX, HTML, images, and more
+- Multiple input sources: local files, HTTP URLs, S3
+- Configurable OCR engines and PDF backends
+- Hierarchical and hybrid document chunking
+- Table extraction
+- Async-first with httpx, full sync support as well
+- Custom error handling and retry logic
+
+Available on PyPI: `pip install docling-serve-sdk`
+
+**License:** MIT
+**Repo:** [github.com/bet0x/docling-serve-sdk](https://github.com/bet0x/docling-serve-sdk)
