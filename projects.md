@@ -136,3 +136,23 @@ Available on Docker Hub: `barrahome/unsloth-docker`
 
 **License:** Apache-2.0
 **Repo:** [github.com/bet0x/unsloth-docker](https://github.com/bet0x/unsloth-docker)
+
+---
+
+## openwebui-migrator
+
+A Python tool for migrating Open WebUI's SQLite database to PostgreSQL. Handles schema conversion, data type mapping, JSON fields, arrays, reserved keywords, and integrity checks — so you don't have to do it manually.
+
+Features:
+
+- Complete schema migration from SQLite to PostgreSQL
+- Automatic data type conversion and mapping
+- Transaction-based safety with rollback on failure
+- Skips pre-populated tables to prevent duplication
+- Handles reserved SQL keywords and special characters
+- Comprehensive logging for debugging
+
+Migrates all core Open WebUI tables: users, auth, chats, files, channels, and configuration.
+
+**License:** Apache-2.0
+**Repo:** [github.com/bet0x/openwebui-migrator](https://github.com/bet0x/openwebui-migrator)
