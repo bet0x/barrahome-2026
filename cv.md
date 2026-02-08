@@ -5,7 +5,7 @@
 For contact information, please visit [Contact](/contact.md).
 
 <div class="cde-window">
-<div class="cde-window-title">Professional Profile</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Professional Profile</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 Results-oriented IT Solutions professional with solid background in project management, regulatory compliance and process improvement. Excellent communication skills. Experience working in teams with several companies to develop and deploy technical solutions. Demonstrated success in analyzing areas to implement improvements and achievement of project results that contribute to the overall objectives of the company.
@@ -14,7 +14,7 @@ Results-oriented IT Solutions professional with solid background in project mana
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">AI & Machine Learning Expertise</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>AI & Machine Learning Expertise</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-menubar">AI Frameworks & Inference</div>
 <div class="cde-window-body">
 
@@ -73,7 +73,7 @@ Results-oriented IT Solutions professional with solid background in project mana
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">AI Infrastructure & Production Systems</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>AI Infrastructure & Production Systems</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-menubar">Rackspace Private Cloud AI</div>
 <div class="cde-window-body">
 
@@ -154,7 +154,7 @@ Results-oriented IT Solutions professional with solid background in project mana
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">Technical Skills</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Technical Skills</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-menubar">Systems & Infrastructure</div>
 <div class="cde-window-body">
 
@@ -229,7 +229,7 @@ Results-oriented IT Solutions professional with solid background in project mana
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">Professional Experience</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Professional Experience</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-menubar">RACKSPACE TECHNOLOGY - Product Engineer/AI Architect | 2024 - Present</div>
 <div class="cde-window-body">
 
@@ -311,7 +311,7 @@ Results-oriented IT Solutions professional with solid background in project mana
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">Open Source & Personal Projects</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Open Source & Personal Projects</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-menubar">EMANON LINUX - Creator / Maintainer | 2010 - 2015</div>
 <div class="cde-window-body">
 
@@ -340,7 +340,7 @@ Results-oriented IT Solutions professional with solid background in project mana
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">Technical Expertise</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Technical Expertise</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-menubar">Operating Systems</div>
 <div class="cde-window-body">
 
@@ -378,7 +378,7 @@ Python, Perl, Bash, PHP, C/C++, Java, PowerShell, Rust
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">Notable Contributions</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Notable Contributions</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 - **RedHat Security Reports:** Contributed several kernel failure reports to RedHat
@@ -390,7 +390,7 @@ Python, Perl, Bash, PHP, C/C++, Java, PowerShell, Rust
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">Additional Skills & Certifications</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Additional Skills & Certifications</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-menubar">Specialized Knowledge</div>
 <div class="cde-window-body">
 
