@@ -83,4 +83,18 @@ unset IFS
     done
 } > "$INDEX"
 
+# generate tags.js for global sidebar
+{
+    echo "var defined_tags = ["
+    for i in "${!unique_tags[@]}"; do
+        if [ "$i" -lt $(( ${#unique_tags[@]} - 1 )) ]; then
+            echo "    \"${unique_tags[$i]}\","
+        else
+            echo "    \"${unique_tags[$i]}\""
+        fi
+    done
+    echo "];"
+} > "$BLOG_DIR/js/tags.js"
+
 echo "index.md generated with ${#sorted[@]} posts and ${#unique_tags[@]} tags"
+echo "js/tags.js generated with ${#unique_tags[@]} tags"

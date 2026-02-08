@@ -20,6 +20,7 @@
         <meta name="theme-color" content="#0a0a0a" />
         <title>alberto@barrahome.org:~$</title>
         <link rel="stylesheet" href="/css/style.css" />
+        <script src="/js/tags.js"></script>
     </head>
     <body>
         <div class="window">
@@ -117,67 +118,112 @@
                     }
                 }
 
-                // tag filtering: move tags from content to sidebar
-                var content = document.querySelector(".content");
-                if (!content) return;
-                var firstP = content.querySelector("p:first-child");
-                if (!firstP || !firstP.textContent.match(/Filter:/)) return;
-
+                // global tags sidebar from tags.js
                 var tagsSection = document.getElementById("tags-section");
                 var tagsPanel = document.getElementById("tags-panel");
-                var codes = firstP.querySelectorAll("code");
-                var items = content.querySelectorAll("li");
+                if (
+                    typeof defined_tags !== "undefined" &&
+                    defined_tags.length > 0
+                ) {
+                    var params = new URLSearchParams(window.location.search);
+                    var selectedTag = params.get("tag") || "all";
+                    var isIndex = path === "/" || path === "/index.md";
 
-                // move tags to sidebar
-                codes.forEach(function (code) {
-                    var btn = document.createElement("a");
-                    btn.href = "#";
-                    btn.className = "sidebar-tag";
-                    btn.textContent = code.textContent.trim();
-                    if (btn.textContent === "all") btn.classList.add("active");
-                    tagsPanel.appendChild(btn);
-                });
+                    // create "all" button
+                    var allBtn = document.createElement("a");
+                    allBtn.href = "/?tag=all";
+                    allBtn.className = "sidebar-tag";
+                    allBtn.textContent = "all";
+                    if (selectedTag === "all") allBtn.classList.add("active");
+                    tagsPanel.appendChild(allBtn);
 
-                // remove filter line and hr from content
-                var hr = firstP.nextElementSibling;
-                if (hr && hr.tagName === "HR") hr.remove();
-                firstP.remove();
-
-                tagsSection.style.display = "";
-
-                // hide inline tags from post list
-                items.forEach(function (li) {
-                    li.querySelectorAll("code").forEach(function (c) {
-                        c.style.display = "none";
+                    // create tag buttons
+                    defined_tags.forEach(function (tag) {
+                        var btn = document.createElement("a");
+                        btn.href = "/?tag=" + encodeURIComponent(tag);
+                        btn.className = "sidebar-tag";
+                        btn.textContent = tag;
+                        if (tag === selectedTag) btn.classList.add("active");
+                        tagsPanel.appendChild(btn);
                     });
-                });
 
-                // click handler
-                tagsPanel.addEventListener("click", function (e) {
-                    if (!e.target.classList.contains("sidebar-tag")) return;
-                    e.preventDefault();
-                    var val = e.target.textContent.trim();
+                    tagsSection.style.display = "";
 
-                    tagsPanel
-                        .querySelectorAll(".sidebar-tag")
-                        .forEach(function (t) {
-                            t.classList.remove("active");
-                        });
-                    e.target.classList.add("active");
+                    // on index page: handle filtering
+                    if (isIndex) {
+                        var content = document.querySelector(".content");
+                        var firstP = content
+                            ? content.querySelector("p:first-child")
+                            : null;
 
-                    items.forEach(function (li) {
-                        if (val === "all") {
-                            li.classList.remove("hidden-tag");
-                            return;
+                        // remove the Filter: line and hr from content
+                        if (firstP && firstP.textContent.match(/Filter:/)) {
+                            var hr = firstP.nextElementSibling;
+                            if (hr && hr.tagName === "HR") hr.remove();
+                            firstP.remove();
                         }
-                        var codes = li.querySelectorAll("code");
-                        var match = false;
-                        codes.forEach(function (c) {
-                            if (c.textContent.trim() === val) match = true;
+
+                        var items = content
+                            ? content.querySelectorAll("li")
+                            : [];
+
+                        // hide inline tag codes in post list
+                        items.forEach(function (li) {
+                            li.querySelectorAll("code").forEach(function (c) {
+                                c.style.display = "none";
+                            });
                         });
-                        li.classList.toggle("hidden-tag", !match);
-                    });
-                });
+
+                        // apply filter from URL parameter
+                        if (selectedTag !== "all") {
+                            items.forEach(function (li) {
+                                var codes = li.querySelectorAll("code");
+                                var match = false;
+                                codes.forEach(function (c) {
+                                    if (c.textContent.trim() === selectedTag)
+                                        match = true;
+                                });
+                                li.classList.toggle("hidden-tag", !match);
+                            });
+                        }
+
+                        // click handler for in-page filtering (no reload)
+                        tagsPanel.addEventListener("click", function (e) {
+                            if (!e.target.classList.contains("sidebar-tag"))
+                                return;
+                            e.preventDefault();
+                            var val = e.target.textContent.trim();
+
+                            // update URL without reload
+                            history.pushState(
+                                null,
+                                "",
+                                "/?tag=" + encodeURIComponent(val),
+                            );
+
+                            tagsPanel
+                                .querySelectorAll(".sidebar-tag")
+                                .forEach(function (t) {
+                                    t.classList.remove("active");
+                                });
+                            e.target.classList.add("active");
+
+                            items.forEach(function (li) {
+                                if (val === "all") {
+                                    li.classList.remove("hidden-tag");
+                                    return;
+                                }
+                                var codes = li.querySelectorAll("code");
+                                var match = false;
+                                codes.forEach(function (c) {
+                                    if (c.textContent.trim() === val)
+                                        match = true;
+                                });
+                                li.classList.toggle("hidden-tag", !match);
+                            });
+                        });
+                    }
+                }
             })();
         </script>
     </body>
