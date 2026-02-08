@@ -1,7 +1,7 @@
 # LMCache + Redis: Distributed KV Cache for Enterprise LLM Inference
 
 **Published:** 2026-02-08  
-**Tags:** AI, LLM, vLLM, Redis, KV-Cache, Optimization, Inference
+**Tags:** ai, llm, vllm, redis, kv-cache, optimization, inference
 
 ---
 
