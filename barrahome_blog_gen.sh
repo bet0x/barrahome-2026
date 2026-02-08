@@ -256,20 +256,6 @@ cat > "$BLOG_DIR/robots.txt" << 'EOF'
 User-agent: *
 Allow: /
 
-# Block unwanted bots
-User-agent: GPTBot
-User-agent: ChatGPT-User
-User-agent: Google-Extended
-User-agent: CCBot
-User-agent: anthropic-ai
-User-agent: Claude-Web
-Allow: /
-
-# Aggressive crawlers
-User-agent: Bytespider
-User-agent: Amazonbot
-Disallow: /
-
 # Sitemap
 Sitemap: https://barrahome.org/sitemap.xml
 
