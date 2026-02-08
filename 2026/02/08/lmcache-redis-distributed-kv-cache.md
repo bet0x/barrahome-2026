@@ -98,29 +98,21 @@ LMCache supports multiple storage backends (local CPU, disk, Redis, Mooncake, S3
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>LMCache Multi-Tier Storage Architecture</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-graph TB
-    subgraph vLLM_Instance[vLLM Instance]
-        A[Request] --> B[Token Chunking]
-        B --> C{Cache Lookup}
-        C -->|Hit| D[Inject Cached KV]
-        C -->|Miss| E[Compute KV via Forward Pass]
-        E --> F[Store in GPU Memory]
-        F --> G[Offload to CPU DRAM]
-    end
-    subgraph Storage_Hierarchy[LMCache Storage Hierarchy]
-        G -->|Async Write| H[Local Disk/NVMe]
-        H -->|LRU Eviction| I[Redis Backend]
-    end
-    subgraph Redis_Storage[Redis Storage]
-        I --> J[Metadata Entry]
-        I --> K[KV Bytes Entry]
-    end
-    subgraph Future_Requests[Future Requests]
-        L[New Request] --> M{Check Redis}
-        M -->|Cache Hit| N[Prefetch to CPU]
-        N --> O[Restore to GPU]
-        O --> D
-    end
+graph LR
+    A[Request] --> B[Token Chunking]
+    B --> C{Cache Lookup}
+    C -->|Hit| D[Inject Cached KV]
+    C -->|Miss| E[Compute KV]
+    E --> F[GPU Memory]
+    F --> G[CPU DRAM]
+    G -->|Async| H[Local Disk]
+    H -->|LRU| I[Redis]
+    I --> J[Metadata]
+    I --> K[KV Bytes]
+    L[Future Request] --> M{Check Redis}
+    M -->|Hit| N[Prefetch]
+    N --> O[Restore GPU]
+    O --> D
     style I fill:#c8a060,stroke:#8a6520,color:#fff
     style J fill:#5f9ea0,stroke:#3d6e70,color:#fff
     style K fill:#5f9ea0,stroke:#3d6e70,color:#fff
