@@ -39,13 +39,12 @@ Early versions had a fatal flaw: **KV cache was fragmented across transformer la
 <div class="cde-window">
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Memory Layout Improvement</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
-
-| Model | Old Block Size | New Block Size | Multiplier |
-|-------|----------------|----------------|------------|
-| Llama-3.1-8B | 32 KB | **2 MB** | **62x larger** |
-| DeepSeek-R1-Distill-32B | 16 KB | **2 MB** | **125x larger** |
-| Llama-3.2-1B | 16 KB | **0.5 MB** | **31x larger** |
-
+<table>
+<tr><th>Model</th><th>Old Block Size</th><th>New Block Size</th><th>Multiplier</th></tr>
+<tr><td>Llama-3.1-8B</td><td>32 KB</td><td><strong>2 MB</strong></td><td><strong>62x larger</strong></td></tr>
+<tr><td>DeepSeek-R1-Distill-32B</td><td>16 KB</td><td><strong>2 MB</strong></td><td><strong>125x larger</strong></td></tr>
+<tr><td>Llama-3.2-1B</td><td>16 KB</td><td><strong>0.5 MB</strong></td><td><strong>31x larger</strong></td></tr>
+</table>
 </div>
 </div>
 
@@ -84,13 +83,12 @@ When a request's KV cache is already in CPU memory (from previous preemption), r
 <div class="cde-window">
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>TTFT Speedup with CPU Cache Hit</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
-
-| Prompt Length | Recompute (ms) | CPU Load (ms) | Speedup |
-|---------------|----------------|---------------|---------|
-| 512 tokens    | ~200           | ~100          | **2x**  |
-| 2K tokens     | ~800           | ~80           | **10x** |
-| 8K tokens     | ~3200          | ~145          | **22x** |
-
+<table>
+<tr><th>Prompt Length</th><th>Recompute (ms)</th><th>CPU Load (ms)</th><th>Speedup</th></tr>
+<tr><td>512 tokens</td><td>~200</td><td>~100</td><td><strong>2x</strong></td></tr>
+<tr><td>2K tokens</td><td>~800</td><td>~80</td><td><strong>10x</strong></td></tr>
+<tr><td>8K tokens</td><td>~3200</td><td>~145</td><td><strong>22x</strong></td></tr>
+</table>
 </div>
 </div>
 
@@ -105,14 +103,13 @@ Benchmark scenario: **10,000 unique 512-token requests** hitting the server.
 <div class="cde-window">
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Throughput with Varying CPU Cache Size</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
-
-| CPU DRAM Allocated | Baseline | With Offloading | Improvement |
-|--------------------|----------|-----------------|-------------|
-| 0 GB (disabled)    | 1850 tok/s | 1850 tok/s    | 1x          |
-| 16 GB              | 1850 tok/s | 3200 tok/s    | **1.7x**    |
-| 64 GB              | 1850 tok/s | 8500 tok/s    | **4.6x**    |
-| 128 GB             | 1850 tok/s | 16,650 tok/s  | **9x**      |
-
+<table>
+<tr><th>CPU DRAM Allocated</th><th>Baseline</th><th>With Offloading</th><th>Improvement</th></tr>
+<tr><td>0 GB (disabled)</td><td>1850 tok/s</td><td>1850 tok/s</td><td>1x</td></tr>
+<tr><td>16 GB</td><td>1850 tok/s</td><td>3200 tok/s</td><td><strong>1.7x</strong></td></tr>
+<tr><td>64 GB</td><td>1850 tok/s</td><td>8500 tok/s</td><td><strong>4.6x</strong></td></tr>
+<tr><td>128 GB</td><td>1850 tok/s</td><td>16,650 tok/s</td><td><strong>9x</strong></td></tr>
+</table>
 </div>
 </div>
 
@@ -259,14 +256,13 @@ The blog exists in a broader ecosystem:
 <div class="cde-window">
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>KV Cache Management Approaches</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
-
-| Approach | Scope | Latency | Use Case |
-|----------|-------|---------|----------|
-| **Native vLLM prefix cache** | Single instance, prefix-only | 0 (in GPU) | Same prompt beginnings |
-| **Native KV offloading** | Single instance, CPU DRAM | Sub-ms (DMA) | High concurrency, preemption |
-| **LMCache + Redis** | Multi-instance cluster | 1-5ms (network) | Distributed fleet, chunk-level sharing |
-| **LMCache + S3** | Multi-instance, persistent | 50-200ms | Cold storage, cost optimization |
-
+<table>
+<tr><th>Approach</th><th>Scope</th><th>Latency</th><th>Use Case</th></tr>
+<tr><td><strong>Native vLLM prefix cache</strong></td><td>Single instance, prefix-only</td><td>0 (in GPU)</td><td>Same prompt beginnings</td></tr>
+<tr><td><strong>Native KV offloading</strong></td><td>Single instance, CPU DRAM</td><td>Sub-ms (DMA)</td><td>High concurrency, preemption</td></tr>
+<tr><td><strong>LMCache + Redis</strong></td><td>Multi-instance cluster</td><td>1-5ms (network)</td><td>Distributed fleet, chunk-level sharing</td></tr>
+<tr><td><strong>LMCache + S3</strong></td><td>Multi-instance, persistent</td><td>50-200ms</td><td>Cold storage, cost optimization</td></tr>
+</table>
 </div>
 </div>
 
