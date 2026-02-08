@@ -4,6 +4,7 @@
 
 ## Posts
 
+- **2026/02/09** - [vLLM KV Offloading: CPU Cache for High-Throughput Inference](/2026/02/09/vllm-kv-offloading-connector.md) `ai` `llm` `vllm` `kv-cache` `performance` `optimization` `inference`
 - **2026/02/08** - [LMCache + Redis: Distributed KV Cache for Enterprise LLM Inference](/2026/02/08/lmcache-redis-distributed-kv-cache.md) `ai` `llm` `vllm` `redis` `kv-cache` `optimization` `inference`
 - **2026/02/07** - [vLLM router: why prefix-cache-aware routing matters for PD disaggregation](/2026/02/07/vllm-router-pd-disaggregation.md) `vllm` `linux` `performance` `tutorial`
 - **2026/02/06** - [nginx thread pools: offloading blocking I/O for better performance](/2026/02/06/nginx-thread-pools.md) `nginx` `linux` `debian` `performance` `tutorial`
