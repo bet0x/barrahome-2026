@@ -12,13 +12,14 @@ body {
     line-height: 1.7;
     margin: 0;
     padding: 0;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
 }
 
 /* Window frame - CDE Motif style */
 .window {
     margin: 0;
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     background: #aeb2c3;
@@ -97,6 +98,7 @@ body {
     gap: 1px;
     padding: 4px;
     border-right: 2px solid #6b6e7a;
+    overflow-y: auto;
 }
 
 .sidebar-section {
