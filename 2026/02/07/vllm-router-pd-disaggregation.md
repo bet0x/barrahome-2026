@@ -12,25 +12,23 @@ This is not a bug. It's a consequence of how requests get distributed when you d
 
 In a standard PD disaggregation setup, the flow looks like this:
 
-<pre class="mermaid">
+<div class="mermaid">
 sequenceDiagram
     participant Client
     participant LB as Load Balancer
     participant P1 as Prefill Node 1
     participant P2 as Prefill Node 2
     participant D1 as Decode Node
-
     Client->>LB: Turn 1 - "What is KV caching?"
     LB->>P1: Route to Prefill Node 1
     P1->>D1: Transfer KV cache via KVConnector
     D1-->>Client: Response
-
     Client->>LB: Turn 2 - "Explain more about eviction"
     LB->>P2: Route to Prefill Node 2 (round robin)
     Note over P2: No prefix cache from Turn 1!
     P2->>D1: Full recomputation + transfer
     D1-->>Client: Response (slower)
-</pre>
+</div>
 
 The load balancer doesn't know or care that Prefill Node 1 already has the prefix cache from Turn 1. It just picks the next available worker. So Prefill Node 2 has to recompute the entire prefix from scratch. Multiply this by thousands of concurrent multi-turn sessions and you get a significant performance hit.
 
@@ -40,26 +38,24 @@ The core issue is simple: **your load balancer is cache-unaware**.
 
 Instead of distributing requests blindly, a cache-aware router tracks which prefill worker has processed which conversation prefix. When Turn 2 arrives, the router knows that Prefill Node 1 already holds that prefix in its KV cache and sends the request there.
 
-<pre class="mermaid">
+<div class="mermaid">
 sequenceDiagram
     participant Client
     participant Router as Cache-Aware Router
     participant P1 as Prefill Node 1
     participant P2 as Prefill Node 2
     participant D1 as Decode Node
-
     Client->>Router: Turn 1 - "What is KV caching?"
     Router->>P1: Route to Prefill Node 1
     P1->>D1: Transfer KV cache
     D1-->>Client: Response
-
     Client->>Router: Turn 2 - "Explain more about eviction"
     Note over Router: Prefix match found on P1
     Router->>P1: Route back to Prefill Node 1
     Note over P1: Cache hit - only compute new tokens
     P1->>D1: Transfer incremental KV cache
     D1-->>Client: Response (faster)
-</pre>
+</div>
 
 The difference is substantial. Instead of recomputing the full prompt on every turn, you only compute the delta. For a conversation that's 10 turns deep with a long system prompt, you're saving a lot of compute.
 
@@ -111,17 +107,16 @@ It's not as smart as full cache-aware routing (it doesn't track actual prefix ov
 
 When you're designing your PD disaggregation stack, the routing layer is not optional — it's the piece that makes or breaks your cache efficiency. Here's how these approaches compare:
 
-<pre class="mermaid">
+<div class="mermaid">
 graph LR
     A[Client Requests] --> B{Router Strategy}
     B -->|Round Robin| C[Low Cache Hits<br/>High Recomputation]
     B -->|Consistent Hash| D[Session Affinity<br/>Good Cache Hits]
     B -->|Cache-Aware| E[Prefix Tracking<br/>Best Cache Hits]
-
     C --> F[Higher Latency<br/>Lower Throughput]
     D --> G[Good Latency<br/>Good Throughput]
     E --> H[Lowest Latency<br/>Highest Throughput]
-</pre>
+</div>
 
 The tradeoff is complexity vs. performance. Round robin needs nothing. Consistent hashing needs a session identifier in your requests. Full cache-aware routing needs a stateful router that tracks prefix patterns across your fleet.
 
