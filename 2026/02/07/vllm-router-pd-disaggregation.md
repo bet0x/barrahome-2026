@@ -12,6 +12,9 @@ This is not a bug. It's a consequence of how requests get distributed when you d
 
 In a standard PD disaggregation setup, the flow looks like this:
 
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Round Robin Routing - The Problem</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
 <div class="mermaid">
 sequenceDiagram
     participant Client
@@ -29,6 +32,8 @@ sequenceDiagram
     P2->>D1: Full recomputation + transfer
     D1-->>Client: Response (slower)
 </div>
+</div>
+</div>
 
 The load balancer doesn't know or care that Prefill Node 1 already has the prefix cache from Turn 1. It just picks the next available worker. So Prefill Node 2 has to recompute the entire prefix from scratch. Multiply this by thousands of concurrent multi-turn sessions and you get a significant performance hit.
 
@@ -38,6 +43,9 @@ The core issue is simple: **your load balancer is cache-unaware**.
 
 Instead of distributing requests blindly, a cache-aware router tracks which prefill worker has processed which conversation prefix. When Turn 2 arrives, the router knows that Prefill Node 1 already holds that prefix in its KV cache and sends the request there.
 
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Cache-Aware Routing - The Solution</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
 <div class="mermaid">
 sequenceDiagram
     participant Client
@@ -55,6 +63,8 @@ sequenceDiagram
     Note over P1: Cache hit - only compute new tokens
     P1->>D1: Transfer incremental KV cache
     D1-->>Client: Response (faster)
+</div>
+</div>
 </div>
 
 The difference is substantial. Instead of recomputing the full prompt on every turn, you only compute the delta. For a conversation that's 10 turns deep with a long system prompt, you're saving a lot of compute.
@@ -107,6 +117,9 @@ It's not as smart as full cache-aware routing (it doesn't track actual prefix ov
 
 When you're designing your PD disaggregation stack, the routing layer is not optional — it's the piece that makes or breaks your cache efficiency. Here's how these approaches compare:
 
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Routing Strategy Comparison</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
 <div class="mermaid">
 graph LR
     A[Client Requests] --> B{Router Strategy}
@@ -116,6 +129,8 @@ graph LR
     C --> F[Higher Latency<br/>Lower Throughput]
     D --> G[Good Latency<br/>Good Throughput]
     E --> H[Lowest Latency<br/>Highest Throughput]
+</div>
+</div>
 </div>
 
 The tradeoff is complexity vs. performance. Round robin needs nothing. Consistent hashing needs a session identifier in your requests. Full cache-aware routing needs a stateful router that tracks prefix patterns across your fleet.
