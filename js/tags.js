@@ -1,12 +1,19 @@
 var defined_tags = [
+    "ai",
     "blog",
     "caching",
     "css",
     "debian",
+    "inference",
+    "kv-cache",
     "linux",
+    "llm",
     "markdown",
     "meta",
     "nginx",
+    "optimization",
     "performance",
-    "tutorial"
+    "redis",
+    "tutorial",
+    "vllm"
 ];
