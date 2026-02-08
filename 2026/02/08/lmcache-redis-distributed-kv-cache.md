@@ -99,7 +99,7 @@ LMCache supports multiple storage backends (local CPU, disk, Redis, Mooncake, S3
 <div class="cde-window-body">
 <div class="mermaid">
 graph TB
-    subgraph "vLLM Instance"
+    subgraph vLLM_Instance[vLLM Instance]
         A[Request] --> B[Token Chunking]
         B --> C{Cache Lookup}
         C -->|Hit| D[Inject Cached KV]
@@ -107,24 +107,20 @@ graph TB
         E --> F[Store in GPU Memory]
         F --> G[Offload to CPU DRAM]
     end
-    
-    subgraph "LMCache Storage Hierarchy"
+    subgraph Storage_Hierarchy[LMCache Storage Hierarchy]
         G -->|Async Write| H[Local Disk/NVMe]
         H -->|LRU Eviction| I[Redis Backend]
     end
-    
-    subgraph "Redis Storage"
+    subgraph Redis_Storage[Redis Storage]
         I --> J[Metadata Entry]
         I --> K[KV Bytes Entry]
     end
-    
-    subgraph "Future Requests"
+    subgraph Future_Requests[Future Requests]
         L[New Request] --> M{Check Redis}
         M -->|Cache Hit| N[Prefetch to CPU]
         N --> O[Restore to GPU]
         O --> D
     end
-    
     style I fill:#c8a060,stroke:#8a6520,color:#fff
     style J fill:#5f9ea0,stroke:#3d6e70,color:#fff
     style K fill:#5f9ea0,stroke:#3d6e70,color:#fff
@@ -304,22 +300,19 @@ outputs = llm.generate(prompts, SamplingParams(temperature=0.7, max_tokens=256))
 <div class="cde-window-body">
 <div class="mermaid">
 graph LR
-    subgraph "Baseline vLLM"
+    subgraph Baseline[Baseline vLLM]
         A1[TTFT: 1.24s]
         A2[Throughput: 230 req/s]
-        A3[Cost: $X per 1K tokens]
+        A3[Cost: X per 1K tokens]
     end
-    
-    subgraph "vLLM + LMCache + Redis"
+    subgraph WithLMCache[vLLM + LMCache + Redis]
         B1[TTFT: 0.18s]
         B2[Throughput: 420 req/s]
-        B3[Cost: $0.36X per 1K tokens]
+        B3[Cost: 0.36X per 1K tokens]
     end
-    
     A1 -->|6.9x faster| B1
     A2 -->|82% increase| B2
     A3 -->|64% reduction| B3
-    
     style B1 fill:#5f9ea0,stroke:#3d6e70,color:#fff
     style B2 fill:#5f9ea0,stroke:#3d6e70,color:#fff
     style B3 fill:#5f9ea0,stroke:#3d6e70,color:#fff
