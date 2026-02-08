@@ -147,6 +147,15 @@ body {
     background: #bfc3d4;
 }
 
+.sidebar-link.active {
+    background: #b24d7a;
+    color: #fff;
+    border-top: 1px solid #6e2f4c;
+    border-left: 1px solid #6e2f4c;
+    border-right: 1px solid #d888a8;
+    border-bottom: 1px solid #d888a8;
+}
+
 .sidebar-tag {
     display: block;
     color: #1a1a2e;

@@ -94,6 +94,19 @@
 
         <script>
             (function () {
+                // highlight active navigation link
+                var path = window.location.pathname;
+                var links = document.querySelectorAll(".sidebar-link");
+                links.forEach(function (link) {
+                    var href = link.getAttribute("href");
+                    if (
+                        path === href ||
+                        (href === "/" && (path === "/" || path === "/index.md"))
+                    ) {
+                        link.classList.add("active");
+                    }
+                });
+
                 // set page title from first heading
                 var l = ["h1", "h2", "h3"];
                 for (var i = 0; i < l.length; i++) {
