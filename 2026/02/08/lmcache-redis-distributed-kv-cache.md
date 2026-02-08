@@ -139,9 +139,9 @@ graph TB
 
 | Tier | Latency | Capacity | Use Case |
 |------|---------|----------|----------|
-| GPU Memory | <1μs | 24-80GB | Active generation |
-| CPU DRAM | ~10μs | 128GB-2TB | Hot cache (pinned memory) |
-| Local NVMe | ~100μs | 1-10TB | Recent sessions |
+| GPU Memory | <1us | 24-80GB | Active generation |
+| CPU DRAM | ~10us | 128GB-2TB | Hot cache (pinned memory) |
+| Local NVMe | ~100us | 1-10TB | Recent sessions |
 | Redis | ~1ms | Unlimited | Shared across cluster |
 
 **3. Cache Operations:**
