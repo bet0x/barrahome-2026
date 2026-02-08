@@ -329,14 +329,43 @@ body {
     color: #fff;
     font-size: 13px;
     font-weight: bold;
-    padding: 4px 10px;
-    text-align: center;
+    padding: 4px 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     letter-spacing: 0.5px;
     text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
     border-top: 2px solid #e0c880;
     border-left: 2px solid #e0c880;
     border-right: 2px solid #8a6520;
     border-bottom: 2px solid #8a6520;
+}
+
+.cde-window-title span {
+    flex: 1;
+    text-align: center;
+}
+
+.cde-window-btns {
+    display: flex;
+    gap: 0;
+}
+
+.cde-window-btn {
+    width: 16px;
+    height: 16px;
+    border-top: 2px solid #e0c880;
+    border-left: 2px solid #e0c880;
+    border-right: 2px solid #8a6520;
+    border-bottom: 2px solid #8a6520;
+    background: #c8a060;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #fff;
+    line-height: 1;
+    cursor: default;
 }
 
 .cde-window-menubar {

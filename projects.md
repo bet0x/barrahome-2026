@@ -1,7 +1,7 @@
 # Projects
 
 <div class="cde-window">
-<div class="cde-window-title">ngx_markdown_filter_module</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>ngx_markdown_filter_module</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 An nginx filter module that converts markdown files to HTML on the fly. It uses the **cmark** library (or **cmark-gfm** for GitHub Flavored Markdown support) to parse and render markdown directly from nginx, without any static site generator or build step.
@@ -23,7 +23,7 @@ Fork of [ukarim/ngx_markdown_filter_module](https://github.com/ukarim/ngx_markdo
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">barrahome-2026</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>barrahome-2026</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 The source for this site. A markdown-only blog served by nginx using `ngx_markdown_filter_module` — no static generator, no build step, no framework. You write `.md` files, nginx serves them as HTML.
@@ -43,7 +43,7 @@ The entire publishing workflow is: write a `.md` file, run the index generator, 
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">semlix</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>semlix</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A pure-Python full-text indexing and search library with semantic search capabilities, built on top of Whoosh. It combines traditional keyword matching (BM25/TF-IDF) with AI-powered semantic vector search, so a query like "authentication problems" can match documents containing "login issues" even without shared keywords.
@@ -69,7 +69,7 @@ Available on PyPI: `pip install semlix[semantic]`
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">broadcom_crawler</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>broadcom_crawler</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A Python crawler that automates downloading Broadcom technical documentation and converts it to clean Markdown files with structured metadata. Designed to make vendor docs accessible for RAG pipelines and AI-augmented research.
@@ -91,7 +91,7 @@ Features:
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">readability-server</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>readability-server</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A REST API server that wraps Mozilla Readability to extract clean, readable content from web pages. Send it a URL, get back the article content in HTML, Markdown, or plain text — with metadata like title, author, and publication date.
@@ -113,7 +113,7 @@ Built with Node.js, Express, and Mozilla Readability.
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">docling-serve-sdk</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>docling-serve-sdk</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A Python SDK for the Docling Serve API. Type-safe document conversion with Pydantic models, async and sync support, and built-in connection pooling and retries.
@@ -138,7 +138,7 @@ Available on PyPI: `pip install docling-serve-sdk`
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">unsloth-docker</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>unsloth-docker</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A Docker environment for fine-tuning large language models using the Unsloth framework with GPU acceleration. Ships with Mistral Small 24B Instruct as the default model but works with any Hugging Face model.
@@ -161,7 +161,7 @@ Available on Docker Hub: `barrahome/unsloth-docker`
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">openwebui-migrator</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>openwebui-migrator</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A Python tool for migrating Open WebUI's SQLite database to PostgreSQL. Handles schema conversion, data type mapping, JSON fields, arrays, reserved keywords, and integrity checks — so you don't have to do it manually.
@@ -184,7 +184,7 @@ Migrates all core Open WebUI tables: users, auth, chats, files, channels, and co
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">manwrapper</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>manwrapper</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A simple Python command-line utility for viewing man pages in a straightforward, user-friendly way. No need to remember `man` command flags — just install and use.
@@ -199,7 +199,7 @@ Available on PyPI: `pip install manwrapper`
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">bpaste</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>bpaste</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A private, self-hosted pastebin service for the command line. Post, retrieve, update, and delete text snippets via HTTP with basic authentication. A simple alternative to public pastebins when you want to keep your data on your own server.
@@ -221,7 +221,7 @@ Built with PHP and a shell wrapper. Inspired by [cmdpb](https://github.com/Knigh
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">Hyper-V-Web-Console</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Hyper-V-Web-Console</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A web-based console for managing Microsoft Hyper-V virtual machines from the browser. Monitor and control VMs without needing RDP or the native Hyper-V Manager.
@@ -242,7 +242,7 @@ Built with Go and HTML/CSS/JS. Requires Windows with Hyper-V and PowerShell modu
 </div>
 
 <div class="cde-window">
-<div class="cde-window-title">BashBlog</div>
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>BashBlog</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
 A minimalist blogging platform built entirely in Bash as a CGI application. Drop a markdown file named `YYYY-MM-DD_Title-of-the-post.md` into a directory and it becomes a blog post automatically.
