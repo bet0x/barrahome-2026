@@ -161,7 +161,7 @@ The blog describes how offloading integrates into vLLM's scheduler:
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Request Flow with KV Offloading</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-graph TB
+graph LR
     A[Request Arrives] --> B{KV in CPU?}
     B -->|Yes| C[Async Import to GPU]
     B -->|No| D[Prefill from Scratch]
