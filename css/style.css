@@ -256,6 +256,31 @@ body {
     color: #c0c0c0;
 }
 
+/* Tables */
+.content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    background: #3d4a56;
+}
+
+.content th,
+.content td {
+    padding: 8px 12px;
+    border: 1px solid #6e7a86;
+    text-align: left;
+}
+
+.content th {
+    background: #4a5868;
+    color: #f0d080;
+    font-weight: bold;
+}
+
+.content td {
+    color: #e0e0e0;
+}
+
 /* Inline code */
 .content code {
     background: #3d4a56;
