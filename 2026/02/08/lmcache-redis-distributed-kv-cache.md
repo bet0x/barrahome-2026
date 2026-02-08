@@ -392,15 +392,15 @@ Agent: [Reuses cached policy chunk ✅]
 
 | Feature | LMCache + Redis | Mooncake | NVIDIA NXIL |
 |---------|-----------------|----------|-------------|
-| **Cache Granularity** | Chunk-level (256 tokens) | Chunk-level | Page-level (vLLM pages) |
+| **Cache Granularity** | Chunk-level (256 tokens) | Chunk-level | Page-level |
 | **Storage Backend** | Redis, S3, NFS, local | Distributed memory pool | GPU RDMA fabric |
-| **Latency** | ~1ms (Redis) | ~500μs (RDMA) | <5μs (RDMA) |
-| **Multi-Node Support** | ✅ Yes | ✅ Yes | ✅ Yes (same datacenter) |
-| **Cross-Datacenter** | ✅ Yes (Redis geo-replication) | ⚠️ Limited | ❌ No |
+| **Latency** | ~1ms (Redis) | ~500us (RDMA) | <5us (RDMA) |
+| **Multi-Node Support** | Yes | Yes | Yes (same datacenter) |
+| **Cross-Datacenter** | Yes (geo-replication) | Limited | No |
 | **vLLM Integration** | Native connector | Native connector | Native support |
-| **SGLang Support** | ✅ Yes | ✅ Yes | ⚠️ Limited |
+| **SGLang Support** | Yes | Yes | Limited |
 | **Storage Capacity** | Unlimited (Redis/S3) | Limited by cluster RAM | Limited by GPU memory |
-| **Operational Complexity** | Low (Redis is standard) | Medium (custom cluster) | High (RDMA fabric) |
+| **Operational Complexity** | Low (standard Redis) | Medium (custom cluster) | High (RDMA fabric) |
 | **Cost** | Low (commodity Redis) | Medium (RAM expensive) | High (RDMA NICs) |
 
 </div>
