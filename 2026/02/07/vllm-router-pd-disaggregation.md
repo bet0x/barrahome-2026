@@ -93,17 +93,17 @@ vllm-router \
   --decode http://decode-1:8000 http://decode-2:8000
 ```
 
-Beyond routing, it includes circuit breakers with exponential backoff, Prometheus metrics, Kubernetes service discovery, and bearer token auth. It's production-grade infrastructure, not a prototype.
+Beyond routing, it includes circuit breakers, retries with exponential backoff, Prometheus metrics, Kubernetes service discovery, and bearer token auth. It's production-grade infrastructure, not a prototype.
 
 ### NVIDIA Dynamo KV Router
 
 NVIDIA's [Dynamo](https://docs.nvidia.com/dynamo/latest/router/README.html) includes its own KV router component that solves the same problem but from inside the NVIDIA ecosystem. It maintains a prefix tree of cached blocks across workers and uses a cost function to decide routing:
 
 ```
-cost = kv_overlap_score_weight * potential_prefill_blocks + potential_active_blocks
+logit = kv_overlap_score_weight * potential_prefill_blocks + potential_active_blocks
 ```
 
-Lower cost means better target. The weight parameter lets you tune between optimizing for time-to-first-token (TTFT) or inter-token latency (ITL). It tracks KV cache events from workers and builds a real-time map of where prefixes live. Two tracking modes are available: event-based (accurate, needs NATS) and approximation-based (lightweight).
+Lower logit means better target. This value is fed into softmax sampling with temperature to select the worker. The weight parameter lets you tune between optimizing for time-to-first-token (TTFT) or inter-token latency (ITL). It tracks KV cache events from workers and builds a real-time map of where prefixes live. Two tracking modes are available: event-based (accurate, needs NATS) and approximation-based (lightweight).
 
 If you're already running Dynamo, this is built in. If you're not, you won't use this in isolation — it's part of the Dynamo stack.
 
