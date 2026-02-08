@@ -137,12 +137,13 @@ graph TB
 
 **2. Storage Hierarchy:**
 
-| Tier | Latency | Capacity | Use Case |
-|------|---------|----------|----------|
-| GPU Memory | <1us | 24-80GB | Active generation |
-| CPU DRAM | ~10us | 128GB-2TB | Hot cache (pinned memory) |
-| Local NVMe | ~100us | 1-10TB | Recent sessions |
-| Redis | ~1ms | Unlimited | Shared across cluster |
+<table>
+<tr><th>Tier</th><th>Latency</th><th>Capacity</th><th>Use Case</th></tr>
+<tr><td>GPU Memory</td><td>&lt;1us</td><td>24-80GB</td><td>Active generation</td></tr>
+<tr><td>CPU DRAM</td><td>~10us</td><td>128GB-2TB</td><td>Hot cache (pinned memory)</td></tr>
+<tr><td>Local NVMe</td><td>~100us</td><td>1-10TB</td><td>Recent sessions</td></tr>
+<tr><td>Redis</td><td>~1ms</td><td>Unlimited</td><td>Shared across cluster</td></tr>
+</table>
 
 **3. Cache Operations:**
 
@@ -389,18 +390,19 @@ Agent: [Reuses cached policy chunk ✅]
 <div class="cde-window">
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Distributed KV Cache Solutions Comparison</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
-| Feature | LMCache + Redis | Mooncake | NVIDIA NXIL |
-|---------|-----------------|----------|-------------|
-| **Cache Granularity** | Chunk-level (256 tokens) | Chunk-level | Page-level |
-| **Storage Backend** | Redis, S3, NFS, local | Distributed memory pool | GPU RDMA fabric |
-| **Latency** | ~1ms (Redis) | ~500us (RDMA) | <5us (RDMA) |
-| **Multi-Node Support** | Yes | Yes | Yes (same datacenter) |
-| **Cross-Datacenter** | Yes (geo-replication) | Limited | No |
-| **vLLM Integration** | Native connector | Native connector | Native support |
-| **SGLang Support** | Yes | Yes | Limited |
-| **Storage Capacity** | Unlimited (Redis/S3) | Limited by cluster RAM | Limited by GPU memory |
-| **Operational Complexity** | Low (standard Redis) | Medium (custom cluster) | High (RDMA fabric) |
-| **Cost** | Low (commodity Redis) | Medium (RAM expensive) | High (RDMA NICs) |
+<table>
+<tr><th>Feature</th><th>LMCache + Redis</th><th>Mooncake</th><th>NVIDIA NXIL</th></tr>
+<tr><td><strong>Cache Granularity</strong></td><td>Chunk-level (256 tokens)</td><td>Chunk-level</td><td>Page-level</td></tr>
+<tr><td><strong>Storage Backend</strong></td><td>Redis, S3, NFS, local</td><td>Distributed memory pool</td><td>GPU RDMA fabric</td></tr>
+<tr><td><strong>Latency</strong></td><td>~1ms (Redis)</td><td>~500us (RDMA)</td><td>&lt;5us (RDMA)</td></tr>
+<tr><td><strong>Multi-Node Support</strong></td><td>Yes</td><td>Yes</td><td>Yes (same datacenter)</td></tr>
+<tr><td><strong>Cross-Datacenter</strong></td><td>Yes (geo-replication)</td><td>Limited</td><td>No</td></tr>
+<tr><td><strong>vLLM Integration</strong></td><td>Native connector</td><td>Native connector</td><td>Native support</td></tr>
+<tr><td><strong>SGLang Support</strong></td><td>Yes</td><td>Yes</td><td>Limited</td></tr>
+<tr><td><strong>Storage Capacity</strong></td><td>Unlimited (Redis/S3)</td><td>Limited by cluster RAM</td><td>Limited by GPU memory</td></tr>
+<tr><td><strong>Operational Complexity</strong></td><td>Low (standard Redis)</td><td>Medium (custom cluster)</td><td>High (RDMA fabric)</td></tr>
+<tr><td><strong>Cost</strong></td><td>Low (commodity Redis)</td><td>Medium (RAM expensive)</td><td>High (RDMA NICs)</td></tr>
+</table>
 </div>
 </div>
 
