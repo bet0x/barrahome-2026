@@ -13,6 +13,13 @@
     function createUI() {
         if (document.getElementById("ai-tutor-window")) return;
         var sessionId = null;
+        var articleContext = getArticleText();
+        var headingEl = document.querySelector(
+            ".content h1, .content h2, .content h3",
+        );
+        var articleTitle = headingEl
+            ? headingEl.textContent.trim()
+            : document.title;
 
         var style = document.createElement("style");
         style.textContent =
@@ -61,7 +68,9 @@
 
         var status = document.createElement("div");
         status.className = "ai-tutor-status";
-        status.textContent = "Ready. Session-based tutor via proxy.";
+        status.textContent = articleContext
+            ? "Ready. Session-based tutor via proxy."
+            : "Warning: no article context detected on page.";
 
         win.appendChild(titlebar);
         win.appendChild(toolbar);
@@ -95,14 +104,6 @@
             promptInput.value = "";
             setStatus("Calling /v1/chat/completions ...");
 
-            var articleText = getArticleText();
-            var pageTitleEl = document.querySelector(
-                ".content h1, .content h2, .content h3",
-            );
-            var pageTitle = pageTitleEl
-                ? pageTitleEl.textContent.trim()
-                : document.title;
-
             var payload = {
                 model: "proxy-managed",
                 temperature: 0.2,
@@ -110,9 +111,9 @@
                 metadata: {
                     session_id: sessionId,
                     article_url: window.location.href,
-                    article_title: pageTitle,
-                    // Seed context only once; later turns rely on server-side session history + tool calls.
-                    article_context: sessionId ? "" : articleText,
+                    article_title: articleTitle,
+                    // Always send current article context so proxy can inject it every turn.
+                    article_context: articleContext,
                 },
             };
 
