@@ -59,7 +59,7 @@ MAX_ARTICLE_CHARS = int(os.getenv("MAX_ARTICLE_CHARS", "140000"))
 SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", "7200"))
 MAX_SESSION_MESSAGES = int(os.getenv("MAX_SESSION_MESSAGES", "24"))
 
-# session_id -> {article_url, article_title, article_context, history, last_seen, seeded_once}
+# session_id -> {article_url, article_title, article_context, history, last_seen}
 SESSIONS: dict[str, dict[str, Any]] = {}
 
 app = FastAPI(title="barrahome LLM Proxy", version="2.1.1")
@@ -386,7 +386,6 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
             "article_context": "",
             "history": [],
             "last_seen": int(time.time()),
-            "seeded_once": False,
         }
         SESSIONS[session_id] = session
     else:
@@ -395,7 +394,6 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
             session["article_title"] = article_title
             session["article_context"] = ""
             session["history"] = []
-            session["seeded_once"] = False
 
     session["last_seen"] = int(time.time())
 
@@ -403,33 +401,27 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
     article_url = str(session.get("article_url") or "")
     article_title = str(session.get("article_title") or "")
 
-    # Seed article context once per session. Prefer client-provided context,
-    # fallback to server-side file read from allowed content roots.
-    if not session.get("seeded_once"):
-        seeded = initial_article_context
-        if not seeded:
-            seeded = _read_article(article_url)
-        session["article_context"] = seeded[:MAX_ARTICLE_CHARS]
-        session["seeded_once"] = True
+    # Keep article context available for every turn.
+    # Prefer client-provided context when available; otherwise fallback to server file read.
+    if initial_article_context:
+        session["article_context"] = initial_article_context[:MAX_ARTICLE_CHARS]
+    elif not session.get("article_context"):
+        session["article_context"] = _read_article(article_url)
 
     article_context = str(session.get("article_context") or "")
     history = list(session.get("history") or [])[-MAX_SESSION_MESSAGES:]
     history = _sanitize_gemma_history(history)
 
-    first_turn = len(history) == 0
-    if first_turn:
-        user_prompt = (
-            "You are an expert tutor for this technical article. "
-            "Answer directly and clearly. Avoid meta acknowledgements.\n\n"
-            f"ARTICLE_TITLE: {article_title or 'unknown'}\n"
-            f"ARTICLE_URL: {article_url}\n"
-            "ARTICLE_CONTEXT_START\n"
-            f"{article_context}\n"
-            "ARTICLE_CONTEXT_END\n\n"
-            f"USER_QUESTION: {question}"
-        )
-    else:
-        user_prompt = f"ARTICLE_URL: {article_url}\nUSER_QUESTION: {question}"
+    user_prompt = (
+        "You are an expert tutor for this technical article. "
+        "Answer directly and clearly. Avoid meta acknowledgements.\n\n"
+        f"ARTICLE_TITLE: {article_title or 'unknown'}\n"
+        f"ARTICLE_URL: {article_url}\n"
+        "ARTICLE_CONTEXT_START\n"
+        f"{article_context}\n"
+        "ARTICLE_CONTEXT_END\n\n"
+        f"USER_QUESTION: {question}"
+    )
 
     # Gemma-safe payload: strictly alternating user/assistant roles only.
     upstream_messages = history + [{"role": "user", "content": user_prompt}]
