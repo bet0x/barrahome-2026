@@ -96,13 +96,32 @@
             log.scrollTop = log.scrollHeight;
         }
 
+        async function streamAssistant(content) {
+            var row = document.createElement("div");
+            row.className = "ai-tutor-msg assistant";
+            row.textContent = "assistant> ";
+            log.appendChild(row);
+
+            var i = 0;
+            var step = 3;
+            while (i < content.length) {
+                row.textContent += content.slice(i, i + step);
+                i += step;
+                log.scrollTop = log.scrollHeight;
+                await new Promise(function (resolve) {
+                    setTimeout(resolve, 12);
+                });
+            }
+        }
+
         async function send() {
             var question = promptInput.value.trim();
             if (!question) return;
+            sendBtn.disabled = true;
 
             addLog("user", question);
             promptInput.value = "";
-            setStatus("Calling /v1/chat/completions ...");
+            setStatus("Generating response ...");
 
             var payload = {
                 model: "proxy-managed",
@@ -142,7 +161,7 @@
                         ? data.choices[0].message.content
                         : "No assistant content in response.";
 
-                addLog("assistant", answer);
+                await streamAssistant(answer);
                 setStatus(
                     "Done. Session: " +
                         (sessionId ? sessionId.slice(0, 8) : "n/a"),
@@ -150,6 +169,8 @@
             } catch (err) {
                 addLog("assistant", "Request failed: " + err.message);
                 setStatus("Error calling API.");
+            } finally {
+                sendBtn.disabled = false;
             }
         }
 
