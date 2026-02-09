@@ -48,6 +48,7 @@ UPSTREAM_TIMEOUT_SECONDS = float(os.getenv("UPSTREAM_TIMEOUT_SECONDS", "45"))
 BLOG_CONTENT_ROOT = Path(
     os.getenv("BLOG_CONTENT_ROOT", str(Path(__file__).resolve().parents[1]))
 ).resolve()
+ALLOWED_ARTICLE_YEAR_DIRS = {"2025", "2026"}
 MAX_ARTICLE_CHARS = int(os.getenv("MAX_ARTICLE_CHARS", "140000"))
 
 SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", "7200"))
@@ -133,11 +134,19 @@ def _cleanup_sessions() -> None:
 def _safe_article_path(article_url: str) -> Path:
     parsed = urlparse(article_url)
     relpath = unquote(parsed.path).lstrip("/")
+    parts = [p for p in Path(relpath).parts if p and p != "."]
 
     if not relpath or not relpath.endswith(".md"):
         raise HTTPException(
             status_code=400,
             detail="article_url must point to a .md path",
+        )
+
+    # Restrict tool file access to year post folders only.
+    if not parts or parts[0] not in ALLOWED_ARTICLE_YEAR_DIRS:
+        raise HTTPException(
+            status_code=403,
+            detail="Only /2025/*.md and /2026/*.md are allowed",
         )
 
     candidate = (BLOG_CONTENT_ROOT / relpath).resolve()
@@ -389,7 +398,9 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
         tool_round_messages = convo_messages + [assistant_msg]
 
         for tool_call in tool_calls:
-            fn = (tool_call.get("function") or {}) if isinstance(tool_call, dict) else {}
+            fn = (
+                (tool_call.get("function") or {}) if isinstance(tool_call, dict) else {}
+            )
             fn_name = fn.get("name")
             raw_args = fn.get("arguments") if isinstance(fn, dict) else None
             call_id = tool_call.get("id") if isinstance(tool_call, dict) else None
@@ -431,7 +442,9 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
         second_payload = {
             "model": UPSTREAM_MODEL,
             "messages": tool_round_messages,
-            "temperature": payload.temperature if payload.temperature is not None else 0.2,
+            "temperature": payload.temperature
+            if payload.temperature is not None
+            else 0.2,
         }
         if payload.max_tokens is not None:
             second_payload["max_tokens"] = payload.max_tokens
