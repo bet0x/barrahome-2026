@@ -62,7 +62,7 @@ MAX_SESSION_MESSAGES = int(os.getenv("MAX_SESSION_MESSAGES", "24"))
 # session_id -> {article_url, article_title, article_context, history, last_seen, seeded_once}
 SESSIONS: dict[str, dict[str, Any]] = {}
 
-app = FastAPI(title="barrahome LLM Proxy", version="2.1.0")
+app = FastAPI(title="barrahome LLM Proxy", version="2.1.1")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -178,12 +178,75 @@ def _extract_last_user_question(messages: list[ChatMessage]) -> str:
 def _extract_assistant_text(response_json: dict[str, Any]) -> str:
     choices = response_json.get("choices")
     if not isinstance(choices, list) or not choices:
+        output_text = response_json.get("output_text")
+        return output_text.strip() if isinstance(output_text, str) else ""
+
+    first_choice = choices[0]
+    if not isinstance(first_choice, dict):
         return ""
-    msg = choices[0].get("message") if isinstance(choices[0], dict) else None
+
+    msg = first_choice.get("message")
+    if isinstance(msg, dict):
+        content = msg.get("content")
+        if isinstance(content, str):
+            return content.strip()
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict):
+                    text = item.get("text")
+                    if isinstance(text, str):
+                        parts.append(text)
+                    elif isinstance(item.get("content"), str):
+                        parts.append(item["content"])
+            joined = "\n".join(p for p in parts if p).strip()
+            if joined:
+                return joined
+
+    legacy_text = first_choice.get("text")
+    if isinstance(legacy_text, str):
+        return legacy_text.strip()
+
+    output_text = response_json.get("output_text")
+    if isinstance(output_text, str):
+        return output_text.strip()
+
+    return ""
+
+
+def _normalize_assistant_message(response_json: dict[str, Any], answer: str) -> None:
+    if not answer:
+        return
+
+    choices = response_json.get("choices")
+    if not isinstance(choices, list) or not choices:
+        response_json["choices"] = [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": answer},
+                "finish_reason": "stop",
+            }
+        ]
+        return
+
+    first_choice = choices[0]
+    if not isinstance(first_choice, dict):
+        choices[0] = {
+            "index": 0,
+            "message": {"role": "assistant", "content": answer},
+            "finish_reason": "stop",
+        }
+        return
+
+    msg = first_choice.get("message")
     if not isinstance(msg, dict):
-        return ""
-    content = msg.get("content")
-    return content.strip() if isinstance(content, str) else ""
+        first_choice["message"] = {"role": "assistant", "content": answer}
+        return
+
+    msg["role"] = "assistant"
+    msg["content"] = answer
 
 
 async def _call_upstream(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -336,10 +399,7 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
             f"USER_QUESTION: {question}"
         )
     else:
-        user_prompt = (
-            f"ARTICLE_URL: {article_url}\n"
-            f"USER_QUESTION: {question}"
-        )
+        user_prompt = f"ARTICLE_URL: {article_url}\nUSER_QUESTION: {question}"
 
     # Gemma-safe payload: strictly alternating user/assistant roles only.
     upstream_messages = history + [{"role": "user", "content": user_prompt}]
@@ -365,6 +425,7 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
         return JSONResponse(status_code=status_code, content=response_data)
 
     answer = _extract_assistant_text(response_data)
+    _normalize_assistant_message(response_data, answer)
     session_history = history + [
         {"role": "user", "content": question},
         {"role": "assistant", "content": answer},
