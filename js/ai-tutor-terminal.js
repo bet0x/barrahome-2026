@@ -1,6 +1,7 @@
 (function () {
     var HOTKEY_CODE = "Backquote";
-    var API_BASE = window.BARRAHOME_TUTOR_API_BASE || window.location.origin;
+    var API_BASE =
+        window.BARRAHOME_TUTOR_API_BASE || window.location.origin + "/ai-proxy";
 
     function getArticleText() {
         var root = document.querySelector(".content");
