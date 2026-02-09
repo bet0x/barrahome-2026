@@ -4,7 +4,12 @@ OpenAI-compatible proxy for /v1/chat/completions with:
 - server-side upstream key/model/base URL
 - strict Origin allow-list
 - in-memory chat sessions
-- server tool: read_article(article_url)
+- server-side read_article (no model tool-calling required)
+
+Gemma compatibility note:
+This proxy sends only alternating user/assistant turns to upstream.
+No system/tool roles are used, because Gemma chat templates often require
+strict alternation.
 """
 
 import json
@@ -54,29 +59,10 @@ MAX_ARTICLE_CHARS = int(os.getenv("MAX_ARTICLE_CHARS", "140000"))
 SESSION_TTL_SECONDS = int(os.getenv("SESSION_TTL_SECONDS", "7200"))
 MAX_SESSION_MESSAGES = int(os.getenv("MAX_SESSION_MESSAGES", "24"))
 
-TOOL_READ_ARTICLE = {
-    "type": "function",
-    "function": {
-        "name": "read_article",
-        "description": "Read a markdown blog article from barrahome.org by URL and return plain text content.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "article_url": {
-                    "type": "string",
-                    "description": "Absolute URL of the article, e.g. https://barrahome.org/2026/02/01/nginx-markdown.md",
-                }
-            },
-            "required": ["article_url"],
-            "additionalProperties": False,
-        },
-    },
-}
-
-# session_id -> {article_url, article_title, history, last_seen, seeded_once}
+# session_id -> {article_url, article_title, article_context, history, last_seen, seeded_once}
 SESSIONS: dict[str, dict[str, Any]] = {}
 
-app = FastAPI(title="barrahome LLM Proxy", version="2.0.0")
+app = FastAPI(title="barrahome LLM Proxy", version="2.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -142,7 +128,6 @@ def _safe_article_path(article_url: str) -> Path:
             detail="article_url must point to a .md path",
         )
 
-    # Restrict tool file access to year post folders only.
     if not parts or parts[0] not in ALLOWED_ARTICLE_YEAR_DIRS:
         raise HTTPException(
             status_code=403,
@@ -306,6 +291,7 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
         session = {
             "article_url": article_url,
             "article_title": article_title,
+            "article_context": "",
             "history": [],
             "last_seen": int(time.time()),
             "seeded_once": False,
@@ -313,9 +299,9 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
         SESSIONS[session_id] = session
     else:
         if article_url and article_url != session.get("article_url"):
-            # user navigated to another post but reused old session id
             session["article_url"] = article_url
             session["article_title"] = article_title
+            session["article_context"] = ""
             session["history"] = []
             session["seeded_once"] = False
 
@@ -325,46 +311,43 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
     article_url = str(session.get("article_url") or "")
     article_title = str(session.get("article_title") or "")
 
-    base_messages: list[dict[str, Any]] = [
-        {
-            "role": "system",
-            "content": (
-                "You are an expert technical tutor for this specific blog article. "
-                "Answer the question directly with concrete details, no meta acknowledgements. "
-                "Use read_article(article_url) when you need authoritative article text. "
-                "If content is missing, say exactly what is missing."
-            ),
-        },
-        {
-            "role": "system",
-            "content": (
-                f"Current article URL: {article_url}\n"
-                f"Current article title: {article_title or 'unknown'}"
-            ),
-        },
-    ]
-
-    if initial_article_context and not session.get("seeded_once"):
-        seeded = initial_article_context[:MAX_ARTICLE_CHARS]
-        base_messages.append(
-            {
-                "role": "system",
-                "content": "Initial article context provided by client:\n" + seeded,
-            }
-        )
+    # Seed article context once per session. Prefer client-provided context,
+    # fallback to server-side file read from allowed content roots.
+    if not session.get("seeded_once"):
+        seeded = initial_article_context
+        if not seeded:
+            seeded = _read_article(article_url)
+        session["article_context"] = seeded[:MAX_ARTICLE_CHARS]
         session["seeded_once"] = True
 
-    history = list(session.get("history") or [])
-    history = history[-MAX_SESSION_MESSAGES:]
+    article_context = str(session.get("article_context") or "")
+    history = list(session.get("history") or [])[-MAX_SESSION_MESSAGES:]
 
-    convo_messages = base_messages + history + [{"role": "user", "content": question}]
+    first_turn = len(history) == 0
+    if first_turn:
+        user_prompt = (
+            "You are an expert tutor for this technical article. "
+            "Answer directly and clearly. Avoid meta acknowledgements.\n\n"
+            f"ARTICLE_TITLE: {article_title or 'unknown'}\n"
+            f"ARTICLE_URL: {article_url}\n"
+            "ARTICLE_CONTEXT_START\n"
+            f"{article_context}\n"
+            "ARTICLE_CONTEXT_END\n\n"
+            f"USER_QUESTION: {question}"
+        )
+    else:
+        user_prompt = (
+            f"ARTICLE_URL: {article_url}\n"
+            f"USER_QUESTION: {question}"
+        )
+
+    # Gemma-safe payload: strictly alternating user/assistant roles only.
+    upstream_messages = history + [{"role": "user", "content": user_prompt}]
 
     upstream_payload: dict[str, Any] = {
         "model": UPSTREAM_MODEL,
-        "messages": convo_messages,
+        "messages": upstream_messages,
         "temperature": payload.temperature if payload.temperature is not None else 0.2,
-        "tools": [TOOL_READ_ARTICLE],
-        "tool_choice": "auto",
     }
     if payload.max_tokens is not None:
         upstream_payload["max_tokens"] = payload.max_tokens
@@ -375,87 +358,13 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
     if payload.presence_penalty is not None:
         upstream_payload["presence_penalty"] = payload.presence_penalty
 
-    status_code, first_response = await _call_upstream(upstream_payload)
+    status_code, response_data = await _call_upstream(upstream_payload)
+    response_data["session_id"] = session_id
+
     if status_code >= 400:
-        first_response["session_id"] = session_id
-        return JSONResponse(status_code=status_code, content=first_response)
+        return JSONResponse(status_code=status_code, content=response_data)
 
-    assistant_msg = None
-    try:
-        assistant_msg = first_response["choices"][0]["message"]
-    except (KeyError, IndexError, TypeError):
-        assistant_msg = None
-
-    final_response = first_response
-
-    tool_calls = []
-    if isinstance(assistant_msg, dict):
-        raw_tool_calls = assistant_msg.get("tool_calls")
-        if isinstance(raw_tool_calls, list):
-            tool_calls = raw_tool_calls
-
-    if tool_calls:
-        tool_round_messages = convo_messages + [assistant_msg]
-
-        for tool_call in tool_calls:
-            fn = (
-                (tool_call.get("function") or {}) if isinstance(tool_call, dict) else {}
-            )
-            fn_name = fn.get("name")
-            raw_args = fn.get("arguments") if isinstance(fn, dict) else None
-            call_id = tool_call.get("id") if isinstance(tool_call, dict) else None
-
-            tool_result = {"ok": False, "error": "Unsupported tool"}
-
-            if fn_name == "read_article":
-                parsed_args: dict[str, Any] = {}
-                if isinstance(raw_args, str) and raw_args.strip():
-                    try:
-                        parsed_args = json.loads(raw_args)
-                    except json.JSONDecodeError:
-                        parsed_args = {}
-
-                target_url = str(parsed_args.get("article_url") or article_url)
-                try:
-                    text = _read_article(target_url)
-                    tool_result = {
-                        "ok": True,
-                        "article_url": target_url,
-                        "content": text,
-                    }
-                except HTTPException as exc:
-                    tool_result = {
-                        "ok": False,
-                        "article_url": target_url,
-                        "error": str(exc.detail),
-                    }
-
-            tool_round_messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": call_id,
-                    "name": fn_name or "unknown",
-                    "content": json.dumps(tool_result, ensure_ascii=True),
-                }
-            )
-
-        second_payload = {
-            "model": UPSTREAM_MODEL,
-            "messages": tool_round_messages,
-            "temperature": payload.temperature
-            if payload.temperature is not None
-            else 0.2,
-        }
-        if payload.max_tokens is not None:
-            second_payload["max_tokens"] = payload.max_tokens
-
-        status_code, second_response = await _call_upstream(second_payload)
-        second_response["session_id"] = session_id
-        if status_code >= 400:
-            return JSONResponse(status_code=status_code, content=second_response)
-        final_response = second_response
-
-    answer = _extract_assistant_text(final_response)
+    answer = _extract_assistant_text(response_data)
     session_history = history + [
         {"role": "user", "content": question},
         {"role": "assistant", "content": answer},
@@ -463,5 +372,4 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
     session["history"] = session_history[-MAX_SESSION_MESSAGES:]
     session["last_seen"] = int(time.time())
 
-    final_response["session_id"] = session_id
-    return JSONResponse(status_code=200, content=final_response)
+    return JSONResponse(status_code=200, content=response_data)
