@@ -249,6 +249,35 @@ def _normalize_assistant_message(response_json: dict[str, Any], answer: str) -> 
     msg["content"] = answer
 
 
+def _sanitize_gemma_history(history: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """
+    Keep only strict user/assistant alternation with string content.
+    Sequence must start with user.
+    """
+    cleaned: list[dict[str, str]] = []
+    expected_role = "user"
+
+    for item in history:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        content = item.get("content")
+        if role not in {"user", "assistant"}:
+            continue
+        if not isinstance(content, str):
+            continue
+        text = content.strip()
+        if not text:
+            continue
+        if role != expected_role:
+            continue
+
+        cleaned.append({"role": role, "content": text})
+        expected_role = "assistant" if expected_role == "user" else "user"
+
+    return cleaned
+
+
 async def _call_upstream(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     headers = {
         "Authorization": f"Bearer {UPSTREAM_API_KEY}",
@@ -385,6 +414,7 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
 
     article_context = str(session.get("article_context") or "")
     history = list(session.get("history") or [])[-MAX_SESSION_MESSAGES:]
+    history = _sanitize_gemma_history(history)
 
     first_turn = len(history) == 0
     if first_turn:
@@ -425,6 +455,11 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
         return JSONResponse(status_code=status_code, content=response_data)
 
     answer = _extract_assistant_text(response_data)
+    if not answer:
+        answer = (
+            "I received an empty/unknown response format from the upstream model. "
+            "Try again or check upstream chat-template settings for Gemma."
+        )
     _normalize_assistant_message(response_data, answer)
     session_history = history + [
         {"role": "user", "content": question},
