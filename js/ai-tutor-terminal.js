@@ -12,6 +12,7 @@
 
     function createUI() {
         if (document.getElementById("ai-tutor-window")) return;
+        var sessionId = null;
 
         var style = document.createElement("style");
         style.textContent =
@@ -60,8 +61,7 @@
 
         var status = document.createElement("div");
         status.className = "ai-tutor-status";
-        status.textContent =
-            "Ready. Using full article context in each request.";
+        status.textContent = "Ready. Session-based tutor via proxy.";
 
         win.appendChild(titlebar);
         win.appendChild(toolbar);
@@ -96,14 +96,6 @@
             setStatus("Calling /v1/chat/completions ...");
 
             var articleText = getArticleText();
-            if (!articleText) {
-                addLog(
-                    "assistant",
-                    "I could not read article content from the page. Check that the post body is rendered in `.content`.",
-                );
-                setStatus("No article context found.");
-                return;
-            }
             var pageTitleEl = document.querySelector(
                 ".content h1, .content h2, .content h3",
             );
@@ -114,28 +106,14 @@
             var payload = {
                 model: "proxy-managed",
                 temperature: 0.2,
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "You are an expert tutor for technical blog articles. The full article context is provided in the user message. Never ask the user to provide context again. Answer directly from that context. If a detail is missing in the context, state that explicitly and continue with the best possible answer.",
-                    },
-                    {
-                        role: "user",
-                        content:
-                            "ARTICLE_TITLE: " +
-                            pageTitle +
-                            "\n" +
-                            "ARTICLE_URL: " +
-                            window.location.href +
-                            "\n\n" +
-                            "ARTICLE_CONTEXT_START\n" +
-                            articleText +
-                            "\nARTICLE_CONTEXT_END\n\n" +
-                            "USER_QUESTION: " +
-                            question,
-                    },
-                ],
+                messages: [{ role: "user", content: question }],
+                metadata: {
+                    session_id: sessionId,
+                    article_url: window.location.href,
+                    article_title: pageTitle,
+                    // Seed context only once; later turns rely on server-side session history + tool calls.
+                    article_context: sessionId ? "" : articleText,
+                },
             };
 
             try {
@@ -152,6 +130,9 @@
                 }
 
                 var data = await res.json();
+                if (data.session_id) {
+                    sessionId = data.session_id;
+                }
                 var answer =
                     data.choices &&
                     data.choices[0] &&
@@ -161,7 +142,10 @@
                         : "No assistant content in response.";
 
                 addLog("assistant", answer);
-                setStatus("Done.");
+                setStatus(
+                    "Done. Session: " +
+                        (sessionId ? sessionId.slice(0, 8) : "n/a"),
+                );
             } catch (err) {
                 addLog("assistant", "Request failed: " + err.message);
                 setStatus("Error calling API.");
