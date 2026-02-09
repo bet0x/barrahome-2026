@@ -3,6 +3,10 @@
 This proxy exposes `POST /v1/chat/completions` and forwards to an upstream OpenAI-compatible endpoint.
 It keeps the upstream `URL`, `model`, and `API key` on the server.
 
+It also adds:
+- in-memory `session_id` conversation state (append user/assistant turns),
+- server-side tool `read_article(article_url)` so the model can read article files directly.
+
 ## Install
 
 ```bash
@@ -16,6 +20,7 @@ export UPSTREAM_API_KEY="sk-..."
 export UPSTREAM_BASE_URL="https://api.openai.com"
 export UPSTREAM_MODEL="gpt-4o-mini"
 export ALLOWED_ORIGINS="https://barrahome.org,https://www.barrahome.org"
+export BLOG_CONTENT_ROOT="/path/to/barrahome-2026"
 uvicorn scripts.llm_proxy:app --host 127.0.0.1 --port 9000
 ```
 
@@ -24,6 +29,37 @@ uvicorn scripts.llm_proxy:app --host 127.0.0.1 --port 9000
 - `ALLOW_REQUESTS_WITHOUT_ORIGIN=false`
 - `MAX_BODY_BYTES=600000`
 - `UPSTREAM_TIMEOUT_SECONDS=45`
+- `SESSION_TTL_SECONDS=7200`
+- `MAX_SESSION_MESSAGES=24`
+- `MAX_ARTICLE_CHARS=140000`
+
+## Request shape from frontend
+
+The frontend should send only the current user question in `messages`, and pass session/article data in `metadata`:
+
+```json
+{
+  "model": "proxy-managed",
+  "messages": [
+    {"role": "user", "content": "Explain this article step by step"}
+  ],
+  "metadata": {
+    "session_id": "optional-on-first-turn",
+    "article_url": "https://barrahome.org/2026/02/01/nginx-markdown.md",
+    "article_title": "Setting up nginx to serve markdown",
+    "article_context": "optional initial context for first turn only"
+  }
+}
+```
+
+Response includes:
+
+```json
+{
+  "...": "...normal chat completions fields...",
+  "session_id": "reuse-this-on-next-turn"
+}
+```
 
 ## Frontend config
 
