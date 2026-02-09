@@ -96,6 +96,14 @@
             setStatus("Calling /v1/chat/completions ...");
 
             var articleText = getArticleText();
+            if (!articleText) {
+                addLog(
+                    "assistant",
+                    "I could not read article content from the page. Check that the post body is rendered in `.content`.",
+                );
+                setStatus("No article context found.");
+                return;
+            }
             var pageTitleEl = document.querySelector(
                 ".content h1, .content h2, .content h3",
             );
@@ -110,21 +118,21 @@
                     {
                         role: "system",
                         content:
-                            "You are an expert tutor for technical blog articles. Only use the article context provided by the user. If missing info, say so clearly.",
+                            "You are an expert tutor for technical blog articles. The full article context is provided in the user message. Never ask the user to provide context again. Answer directly from that context. If a detail is missing in the context, state that explicitly and continue with the best possible answer.",
                     },
                     {
                         role: "user",
                         content:
-                            "Article title: " +
+                            "ARTICLE_TITLE: " +
                             pageTitle +
-                            "\\n" +
-                            "Article URL: " +
+                            "\n" +
+                            "ARTICLE_URL: " +
                             window.location.href +
-                            "\\n\\n" +
-                            "Article full context:\\n" +
+                            "\n\n" +
+                            "ARTICLE_CONTEXT_START\n" +
                             articleText +
-                            "\\n\\n" +
-                            "User question:\\n" +
+                            "\nARTICLE_CONTEXT_END\n\n" +
+                            "USER_QUESTION: " +
                             question,
                     },
                 ],
