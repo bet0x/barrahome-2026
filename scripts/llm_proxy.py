@@ -413,8 +413,18 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
     history = _sanitize_gemma_history(history)
 
     user_prompt = (
-        "You are an expert tutor for this technical article. "
-        "Answer directly and clearly. Avoid meta acknowledgements.\n\n"
+        "TASK:\n"
+        "Answer the USER_QUESTION using only ARTICLE_CONTEXT.\n"
+        "Do not ask for context. Do not say you are ready. Do not add preambles.\n"
+        "Start immediately with the answer content.\n\n"
+        "OUTPUT RULES:\n"
+        "- If asked to explain the article, include:\n"
+        "  1) One-sentence summary.\n"
+        "  2) Step-by-step explanation.\n"
+        "  3) Practical commands/config snippets mentioned.\n"
+        "  4) Common pitfalls and fixes.\n"
+        "- If info is missing, say exactly what is missing in one line.\n"
+        "- Be concrete, technical, and concise.\n\n"
         f"ARTICLE_TITLE: {article_title or 'unknown'}\n"
         f"ARTICLE_URL: {article_url}\n"
         "ARTICLE_CONTEXT_START\n"
