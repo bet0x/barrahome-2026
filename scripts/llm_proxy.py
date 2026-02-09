@@ -457,10 +457,47 @@ async def chat_completions(payload: ChatCompletionsRequest) -> JSONResponse:
         return JSONResponse(status_code=status_code, content=response_data)
 
     answer = _extract_assistant_text(response_data)
+
+    # Gemma/vLLM may occasionally return an immediate stop with empty content.
+    # Retry once with a tighter "rescue" prompt before failing.
+    if not answer:
+        rescue_prompt = (
+            "Answer USER_QUESTION using ARTICLE_CONTEXT only.\n"
+            "Do not acknowledge instructions. Start with the answer immediately.\n"
+            "Return at least 4 concise sentences.\n\n"
+            f"ARTICLE_TITLE: {article_title or 'unknown'}\n"
+            f"ARTICLE_URL: {article_url}\n"
+            "ARTICLE_CONTEXT_START\n"
+            f"{article_context}\n"
+            "ARTICLE_CONTEXT_END\n\n"
+            f"USER_QUESTION: {question}"
+        )
+
+        retry_payload: dict[str, Any] = {
+            "model": UPSTREAM_MODEL,
+            "messages": history + [{"role": "user", "content": rescue_prompt}],
+            "temperature": 0.0,
+            "max_tokens": payload.max_tokens if payload.max_tokens is not None else 512,
+        }
+        if payload.top_p is not None:
+            retry_payload["top_p"] = payload.top_p
+        if payload.frequency_penalty is not None:
+            retry_payload["frequency_penalty"] = payload.frequency_penalty
+        if payload.presence_penalty is not None:
+            retry_payload["presence_penalty"] = payload.presence_penalty
+
+        retry_status, retry_data = await _call_upstream(retry_payload)
+        retry_data["session_id"] = session_id
+        if retry_status < 400:
+            retry_answer = _extract_assistant_text(retry_data)
+            if retry_answer:
+                response_data = retry_data
+                answer = retry_answer
+
     if not answer:
         answer = (
-            "I received an empty/unknown response format from the upstream model. "
-            "Try again or check upstream chat-template settings for Gemma."
+            "Upstream model returned empty content twice. "
+            "Try a larger Gemma model (4B+) or check vLLM chat-template settings."
         )
     _normalize_assistant_message(response_data, answer)
     session_history = history + [
