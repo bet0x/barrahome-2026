@@ -1,6 +1,6 @@
 # Setting up ngx_markdown_filter_module: a practical guide
 
-**2026/02/06**
+**Published on:** 2026/02/06
 
 **Tags:** nginx, markdown, linux, tutorial, debian
 

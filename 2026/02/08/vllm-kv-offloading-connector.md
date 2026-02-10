@@ -1,5 +1,7 @@
 # vLLM KV Offloading: Key Findings from the Official Announcement
 
+**Published on:** 2026/02/08
+
 **Tags:** ai, llm, vllm, kv-cache, performance, optimization, inference
 
 ---

@@ -1,6 +1,6 @@
 # Setting up nginx to serve markdown
 
-**2026/02/01**
+**Published on:** 2026/02/01
 
 **Tags:** nginx, markdown, linux
 

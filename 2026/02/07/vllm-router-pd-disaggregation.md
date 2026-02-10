@@ -1,6 +1,6 @@
 # vLLM router: why prefix-cache-aware routing matters for PD disaggregation
 
-**2026/02/07**
+**Published on:** 2026/02/07
 
 **Tags:** vllm, linux, performance, tutorial
 
