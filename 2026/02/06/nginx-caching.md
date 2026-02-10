@@ -1,6 +1,6 @@
 # nginx caching: proxy_cache and fastcgi_cache explained
 
-**2026/02/06**
+**Published on:** 2026/02/06
 
 **Tags:** nginx, caching, linux, tutorial, debian
 

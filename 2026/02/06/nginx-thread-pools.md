@@ -1,6 +1,6 @@
 # nginx thread pools: offloading blocking I/O for better performance
 
-**2026/02/06**
+**Published on:** 2026/02/06
 
 **Tags:** nginx, linux, debian, performance, tutorial
 

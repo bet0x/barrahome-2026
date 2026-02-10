@@ -1,6 +1,6 @@
 # Welcome
 
-**2025/06/15**
+**Published on:** 2025/06/15
 
 **Tags:** blog, meta
 

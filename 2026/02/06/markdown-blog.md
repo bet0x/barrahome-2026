@@ -1,6 +1,6 @@
 # A markdown blog with nginx
 
-**2026/02/06**
+**Published on:** 2026/02/06
 
 **Tags:** blog, nginx, markdown, css
 
