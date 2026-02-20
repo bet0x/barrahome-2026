@@ -23,13 +23,13 @@ Before talking about RAG, it's worth being precise about what "retrieval" means.
 <div class="cde-window-body">
 <div class="mermaid">
 graph LR
-    EM["Exact Match\ngrep / regex / SQL"]
-    SQL["Structured Queries\nSQL + Text2SQL"]
-    BM25["Lexical Search\nBM25 / TF-IDF"]
-    HYB["Hybrid\nBM25 + Semantic"]
-    VEC["Dense Retrieval\nVector Embeddings"]
-    GRAPH["Graph-based\nKnowledge Graph"]
-    FINE["Fine-tuned\nDomain Embeddings"]
+    EM[Exact Match<br/>grep / regex / SQL]
+    SQL[Structured Queries<br/>SQL + Text2SQL]
+    BM25[Lexical Search<br/>BM25 / TF-IDF]
+    HYB[Hybrid<br/>BM25 + Semantic]
+    VEC[Dense Retrieval<br/>Vector Embeddings]
+    GRAPH[Graph-based<br/>Knowledge Graph]
+    FINE[Fine-tuned<br/>Domain Embeddings]
 
     EM -->|more complexity| SQL
     SQL -->|more complexity| BM25
@@ -58,17 +58,17 @@ The mistake I see most often in 2026 is teams starting at step five — dense ve
 <div class="cde-window-body">
 <div class="mermaid">
 graph LR
-    Q([User Query]) --> S1{Structured data?}
-    S1 -->|Yes| SQL[SQL + Filters\nText2SQL]
+    Q[User Query] --> S1{Structured data?}
+    S1 -->|Yes| SQL[SQL + Filters<br/>Text2SQL]
     S1 -->|No| S2{Expert users?}
-    S2 -->|Yes| BM25[BM25\nElasticsearch]
-    S2 -->|No| S3{Paraphrase or\ncross-lingual?}
+    S2 -->|Yes| BM25[BM25<br/>Elasticsearch]
+    S2 -->|No| S3{Paraphrase or<br/>cross-lingual?}
     S3 -->|No| BM25
-    S3 -->|Yes| S4{Domain embeddings\navailable?}
-    S4 -->|No| HG[Hybrid BM25 +\nGeneric Embeddings]
-    S4 -->|Yes| HD[Hybrid BM25 +\nDomain Embeddings]
-    S2 -->|Relationships| S5{Entity graph\nneeded?}
-    S5 -->|Yes| GRAPH[Graph RAG\nKnowledge Graph]
+    S3 -->|Yes| S4{Domain embeddings<br/>available?}
+    S4 -->|No| HG[Hybrid BM25<br/>Generic Embeddings]
+    S4 -->|Yes| HD[Hybrid BM25<br/>Domain Embeddings]
+    S2 -->|Relationships| S5{Entity graph<br/>needed?}
+    S5 -->|Yes| GRAPH[Graph RAG<br/>Knowledge Graph]
     S5 -->|No| BM25
 
     style SQL fill:#1a3a1a,stroke:#39ff14,color:#39ff14
@@ -286,15 +286,15 @@ The broader point: the most capable AI coding systems in 2026 have implicitly va
 <div class="cde-window-body">
 <div class="mermaid">
 graph LR
-    TASK([Coding Task]) --> Q1{Symbol name\nknown?}
-    Q1 -->|Yes| GREP[Grep / Glob\nexact match]
-    Q1 -->|No| Q2{File path\nknown?}
-    Q2 -->|Yes| READ[Read\ndirect access]
-    Q2 -->|No| Q3{Structural\npattern?}
-    Q3 -->|Yes| AST[AST Search\nTree-sitter / ctags]
-    Q3 -->|No| SEM[Semantic Search\nlast resort]
+    TASK[Coding Task] --> Q1{Symbol name known?}
+    Q1 -->|Yes| GREP[Grep / Glob<br/>exact match]
+    Q1 -->|No| Q2{File path known?}
+    Q2 -->|Yes| READ[Read<br/>direct access]
+    Q2 -->|No| Q3{Structural pattern?}
+    Q3 -->|Yes| AST[AST Search<br/>Tree-sitter / ctags]
+    Q3 -->|No| SEM[Semantic Search<br/>last resort]
 
-    GREP --> CTX[Context\ninjected into LLM]
+    GREP --> CTX[Context injected into LLM]
     READ --> CTX
     AST --> CTX
     SEM --> CTX
