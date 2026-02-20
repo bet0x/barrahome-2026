@@ -22,37 +22,29 @@ Before talking about RAG, it's worth being precise about what "retrieval" means.
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>The Retrieval Spectrum</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-flowchart LR
-    EM["Exact Match\ngrep · regex · SQL ="]
-    SQL["Structured Queries\nSQL · filters · Text2SQL"]
-    BM25["Lexical Search\nBM25 · TF-IDF"]
+graph LR
+    EM["Exact Match\ngrep / regex / SQL"]
+    SQL["Structured Queries\nSQL + Text2SQL"]
+    BM25["Lexical Search\nBM25 / TF-IDF"]
     HYB["Hybrid\nBM25 + Semantic"]
     VEC["Dense Retrieval\nVector Embeddings"]
     GRAPH["Graph-based\nKnowledge Graph"]
     FINE["Fine-tuned\nDomain Embeddings"]
 
-    EM -->|+complexity| SQL
-    SQL -->|+complexity| BM25
-    BM25 -->|+complexity| HYB
-    HYB -->|+complexity| VEC
-    VEC -->|+complexity| GRAPH
-    GRAPH -->|+complexity| FINE
+    EM -->|more complexity| SQL
+    SQL -->|more complexity| BM25
+    BM25 -->|more complexity| HYB
+    HYB -->|more complexity| VEC
+    VEC -->|more complexity| GRAPH
+    GRAPH -->|more complexity| FINE
 
-    EM:::l1
-    SQL:::l2
-    BM25:::l3
-    HYB:::l4
-    VEC:::l5
-    GRAPH:::l6
-    FINE:::l7
-
-    classDef l1 fill:#0a2a0a,stroke:#39ff14,color:#39ff14
-    classDef l2 fill:#143300,stroke:#55ff22,color:#55ff22
-    classDef l3 fill:#1e3d00,stroke:#88ff44,color:#88ff44
-    classDef l4 fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
-    classDef l5 fill:#3a1500,stroke:#ff7700,color:#ff7700
-    classDef l6 fill:#3a0800,stroke:#ff4400,color:#ff4400
-    classDef l7 fill:#3a0000,stroke:#ff0000,color:#ff0000
+    style EM fill:#0a2a0a,stroke:#39ff14,color:#39ff14
+    style SQL fill:#143300,stroke:#55ff22,color:#55ff22
+    style BM25 fill:#1e3d00,stroke:#88ff44,color:#88ff44
+    style HYB fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
+    style VEC fill:#3a1500,stroke:#ff7700,color:#ff7700
+    style GRAPH fill:#3a0800,stroke:#ff4400,color:#ff4400
+    style FINE fill:#3a0000,stroke:#ff0000,color:#ff0000
 </div>
 </div>
 </div>
@@ -65,29 +57,25 @@ The mistake I see most often in 2026 is teams starting at step five — dense ve
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Retrieval Decision Flow</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-flowchart LR
-    Q([User Query]) --> S1{Structured data?\ndate · ID · status}
+graph LR
+    Q([User Query]) --> S1{Structured data?}
     S1 -->|Yes| SQL[SQL + Filters\nText2SQL]
-    S1 -->|No| S2{Expert users?\nControlled vocab?}
+    S1 -->|No| S2{Expert users?}
     S2 -->|Yes| BM25[BM25\nElasticsearch]
     S2 -->|No| S3{Paraphrase or\ncross-lingual?}
     S3 -->|No| BM25
-    S3 -->|Yes| S4{Domain-specific\nembeddings available?}
-    S4 -->|No| HYBRID_GENERIC[Hybrid BM25 +\nGeneric Embeddings]
-    S4 -->|Yes| HYBRID_DOMAIN[Hybrid BM25 +\nDomain Embeddings]
+    S3 -->|Yes| S4{Domain embeddings\navailable?}
+    S4 -->|No| HG[Hybrid BM25 +\nGeneric Embeddings]
+    S4 -->|Yes| HD[Hybrid BM25 +\nDomain Embeddings]
     S2 -->|Relationships| S5{Entity graph\nneeded?}
     S5 -->|Yes| GRAPH[Graph RAG\nKnowledge Graph]
     S5 -->|No| BM25
 
-    SQL:::good
-    BM25:::good
-    HYBRID_DOMAIN:::medium
-    HYBRID_GENERIC:::medium
-    GRAPH:::complex
-
-    classDef good fill:#1a3a1a,stroke:#39ff14,color:#39ff14
-    classDef medium fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
-    classDef complex fill:#3a0000,stroke:#ff4444,color:#ff4444
+    style SQL fill:#1a3a1a,stroke:#39ff14,color:#39ff14
+    style BM25 fill:#1a3a1a,stroke:#39ff14,color:#39ff14
+    style HD fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
+    style HG fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
+    style GRAPH fill:#3a0000,stroke:#ff4444,color:#ff4444
 </div>
 </div>
 </div>
@@ -297,27 +285,25 @@ The broader point: the most capable AI coding systems in 2026 have implicitly va
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Agentic Coding Retrieval Flow</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-flowchart LR
-    TASK([Coding Task]) --> Q1{Know the\nsymbol name?}
+graph LR
+    TASK([Coding Task]) --> Q1{Symbol name\nknown?}
     Q1 -->|Yes| GREP[Grep / Glob\nexact match]
-    Q1 -->|No| Q2{Know the\nfile path?}
+    Q1 -->|No| Q2{File path\nknown?}
     Q2 -->|Yes| READ[Read\ndirect access]
     Q2 -->|No| Q3{Structural\npattern?}
-    Q3 -->|Yes| AST[AST Search\nTree-sitter · ctags]
+    Q3 -->|Yes| AST[AST Search\nTree-sitter / ctags]
     Q3 -->|No| SEM[Semantic Search\nlast resort]
 
-    GREP --> CTX[Relevant context\ninjected into LLM]
+    GREP --> CTX[Context\ninjected into LLM]
     READ --> CTX
     AST --> CTX
     SEM --> CTX
 
-    GREP:::good
-    READ:::good
-    AST:::good
-    SEM:::last
-
-    classDef good fill:#1a3a1a,stroke:#39ff14,color:#39ff14
-    classDef last fill:#3a1500,stroke:#ff7700,color:#ff7700
+    style GREP fill:#1a3a1a,stroke:#39ff14,color:#39ff14
+    style READ fill:#1a3a1a,stroke:#39ff14,color:#39ff14
+    style AST fill:#1a3a1a,stroke:#39ff14,color:#39ff14
+    style SEM fill:#3a1500,stroke:#ff7700,color:#ff7700
+    style CTX fill:#1a1a3a,stroke:#4444ff,color:#aaaaff
 </div>
 </div>
 </div>
