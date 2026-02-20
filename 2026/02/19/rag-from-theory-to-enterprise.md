@@ -37,14 +37,6 @@ graph LR
     HYB -->|more complexity| VEC
     VEC -->|more complexity| GRAPH
     GRAPH -->|more complexity| FINE
-
-    style EM fill:#0a2a0a,stroke:#39ff14,color:#39ff14
-    style SQL fill:#143300,stroke:#55ff22,color:#55ff22
-    style BM25 fill:#1e3d00,stroke:#88ff44,color:#88ff44
-    style HYB fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
-    style VEC fill:#3a1500,stroke:#ff7700,color:#ff7700
-    style GRAPH fill:#3a0800,stroke:#ff4400,color:#ff4400
-    style FINE fill:#3a0000,stroke:#ff0000,color:#ff0000
 </div>
 </div>
 </div>
@@ -62,20 +54,15 @@ graph LR
     S1 -->|Yes| SQL[SQL + Filters<br/>Text2SQL]
     S1 -->|No| S2{Expert users?}
     S2 -->|Yes| BM25[BM25<br/>Elasticsearch]
-    S2 -->|No| S3{Paraphrase or<br/>cross-lingual?}
+    S2 -->|No| S3{Paraphrase or cross-lingual?}
     S3 -->|No| BM25
-    S3 -->|Yes| S4{Domain embeddings<br/>available?}
+    S3 -->|Yes| S4{Domain embeddings available?}
     S4 -->|No| HG[Hybrid BM25<br/>Generic Embeddings]
     S4 -->|Yes| HD[Hybrid BM25<br/>Domain Embeddings]
-    S2 -->|Relationships| S5{Entity graph<br/>needed?}
+    S2 -->|Relationships| S5{Entity graph needed?}
     S5 -->|Yes| GRAPH[Graph RAG<br/>Knowledge Graph]
     S5 -->|No| BM25
 
-    style SQL fill:#1a3a1a,stroke:#39ff14,color:#39ff14
-    style BM25 fill:#1a3a1a,stroke:#39ff14,color:#39ff14
-    style HD fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
-    style HG fill:#3a2a00,stroke:#ffaa00,color:#ffaa00
-    style GRAPH fill:#3a0000,stroke:#ff4444,color:#ff4444
 </div>
 </div>
 </div>
@@ -201,14 +188,15 @@ Output:
 
 ### Where BM25 Wins
 
-| Scenario | Why BM25 works |
-|----------|---------------|
-| Medical records with ICD codes | Exact code matching, no semantic drift |
-| Legal documents | Precise term matching required — synonyms are legally dangerous |
-| Log analysis | Structured token patterns, no paraphrase needed |
-| Academic papers | Keyword queries where exact terminology matters |
-| Internal documentation | Expert users who know the vocabulary |
-| Multilingual enterprise corpora | Language-aware tokenization, no embedding model needed |
+<table>
+<tr><th>Scenario</th><th>Why BM25 works</th></tr>
+<tr><td>Medical records with ICD codes</td><td>Exact code matching, no semantic drift</td></tr>
+<tr><td>Legal documents</td><td>Precise term matching required — synonyms are legally dangerous</td></tr>
+<tr><td>Log analysis</td><td>Structured token patterns, no paraphrase needed</td></tr>
+<tr><td>Academic papers</td><td>Keyword queries where exact terminology matters</td></tr>
+<tr><td>Internal documentation</td><td>Expert users who know the vocabulary</td></tr>
+<tr><td>Multilingual enterprise corpora</td><td>Language-aware tokenization, no embedding model needed</td></tr>
+</table>
 
 BM25 loses when users don't know the vocabulary — when "chest pain" needs to match records that say "precordial discomfort". That's a real problem in consumer-facing search. It's a smaller problem in expert-facing systems where vocabulary is controlled.
 
@@ -299,11 +287,6 @@ graph LR
     AST --> CTX
     SEM --> CTX
 
-    style GREP fill:#1a3a1a,stroke:#39ff14,color:#39ff14
-    style READ fill:#1a3a1a,stroke:#39ff14,color:#39ff14
-    style AST fill:#1a3a1a,stroke:#39ff14,color:#39ff14
-    style SEM fill:#3a1500,stroke:#ff7700,color:#ff7700
-    style CTX fill:#1a1a3a,stroke:#4444ff,color:#aaaaff
 </div>
 </div>
 </div>
@@ -459,16 +442,17 @@ In most enterprise document corpora, BM25 deserves a weight of 0.5–0.7 even wh
 
 If you use vector embeddings, the embedding model is the most consequential architectural decision in your pipeline. Generic models encode generic semantic similarity. Domain models encode domain-relevant similarity.
 
-| Model | Training Data | Best For |
-|-------|--------------|----------|
-| `text-embedding-ada-002` | Web text | General-purpose, multilingual |
-| `multilingual-e5-large` | Web text, multilingual | Cross-lingual document retrieval |
-| `BioBERT` | PubMed + PMC | Biomedical literature |
-| `ClinicalBERT` | MIMIC-III clinical notes | Clinical text, EHR |
-| `CodeBERT` | GitHub code | Code search and similarity |
-| `LegalBERT` | Legal corpora | Legal documents |
-| `FinBERT` | Financial reports | Financial text |
-| `SciBERT` | Semantic Scholar papers | Scientific literature |
+<table>
+<tr><th>Model</th><th>Training Data</th><th>Best For</th></tr>
+<tr><td><code>text-embedding-ada-002</code></td><td>Web text</td><td>General-purpose, multilingual</td></tr>
+<tr><td><code>multilingual-e5-large</code></td><td>Web text, multilingual</td><td>Cross-lingual document retrieval</td></tr>
+<tr><td><code>BioBERT</code></td><td>PubMed + PMC</td><td>Biomedical literature</td></tr>
+<tr><td><code>ClinicalBERT</code></td><td>MIMIC-III clinical notes</td><td>Clinical text, EHR</td></tr>
+<tr><td><code>CodeBERT</code></td><td>GitHub code</td><td>Code search and similarity</td></tr>
+<tr><td><code>LegalBERT</code></td><td>Legal corpora</td><td>Legal documents</td></tr>
+<tr><td><code>FinBERT</code></td><td>Financial reports</td><td>Financial text</td></tr>
+<tr><td><code>SciBERT</code></td><td>Semantic Scholar papers</td><td>Scientific literature</td></tr>
+</table>
 
 Using a generic model on a specialized domain isn't a minor suboptimality — it's a category error. ClinicalBERT understands that "SOB" means shortness of breath. It knows "pt c/o CP x3d" is a patient complaining of chest pain for three days. A generic model does not.
 
@@ -553,15 +537,16 @@ RAGAS and TruLens provide tooling for end-to-end RAG evaluation. But the foundat
 
 ## RAG Types: A Reference Table
 
-| RAG Type | Retrieval Method | Best For | Real Example | When to Avoid |
-|----------|-----------------|----------|--------------|---------------|
-| **Exact Match** | grep, regex, SQL `=` | Structured data, controlled vocabulary | Code search; patient lookup by ID or ICD code | When users paraphrase or vocabulary varies |
-| **Lexical (BM25)** | BM25, TF-IDF, Elasticsearch | Keyword-rich documents, expert users | Legal contracts, clinical notes, internal wikis, log search | Heavy paraphrase variation; cross-lingual queries |
-| **Text2SQL** | LLM → SQL → RDBMS | Natural language over relational data | "Show patients admitted this weekend with diagnosis X" | Unstructured text retrieval; similarity-based search |
-| **Semantic** | Dense embeddings + vector DB | Paraphrase variation; exploratory queries; cross-lingual | Consumer product search; heterogeneous enterprise docs | Clinical coding; code search; anything requiring auditability |
-| **Hybrid** | BM25 + embeddings + RRF | Mixed query types over the same corpus | Enterprise knowledge bases; research paper search | Simple corpora where BM25 alone reaches 90%+ recall |
-| **Graph** | Knowledge graph traversal + LLM | Answers require following typed entity relationships | Drug interactions; citation networks; policy dependency graphs | Flat corpora; point-retrieval queries |
-| **Fine-tuned Embedding** | Domain-specific embedding model | Specialized terminology; labeled evaluation data exists | Clinical note similarity; legal precedent retrieval | No labeled data — fine-tuning without evaluation is blind |
+<table>
+<tr><th>RAG Type</th><th>Retrieval Method</th><th>Best For</th><th>Real Example</th><th>When to Avoid</th></tr>
+<tr><td><strong>Exact Match</strong></td><td>grep, regex, SQL</td><td>Structured data, controlled vocabulary</td><td>Code search; patient lookup by ID or ICD code</td><td>When users paraphrase or vocabulary varies</td></tr>
+<tr><td><strong>Lexical (BM25)</strong></td><td>BM25, TF-IDF, Elasticsearch</td><td>Keyword-rich documents, expert users</td><td>Legal contracts, clinical notes, internal wikis, log search</td><td>Heavy paraphrase variation; cross-lingual queries</td></tr>
+<tr><td><strong>Text2SQL</strong></td><td>LLM → SQL → RDBMS</td><td>Natural language over relational data</td><td>Show patients admitted this weekend with diagnosis X</td><td>Unstructured text retrieval; similarity-based search</td></tr>
+<tr><td><strong>Semantic</strong></td><td>Dense embeddings + vector DB</td><td>Paraphrase variation; exploratory; cross-lingual</td><td>Consumer product search; heterogeneous enterprise docs</td><td>Clinical coding; code search; anything requiring auditability</td></tr>
+<tr><td><strong>Hybrid</strong></td><td>BM25 + embeddings + RRF</td><td>Mixed query types over the same corpus</td><td>Enterprise knowledge bases; research paper search</td><td>Simple corpora where BM25 alone reaches 90%+ recall</td></tr>
+<tr><td><strong>Graph</strong></td><td>Knowledge graph traversal + LLM</td><td>Answers require following typed entity relationships</td><td>Drug interactions; citation networks; policy dependency graphs</td><td>Flat corpora; point-retrieval queries</td></tr>
+<tr><td><strong>Fine-tuned Embedding</strong></td><td>Domain-specific embedding model</td><td>Specialized terminology; labeled evaluation data exists</td><td>Clinical note similarity; legal precedent retrieval</td><td>No labeled data — fine-tuning without evaluation is blind</td></tr>
+</table>
 
 The table is roughly ordered by complexity and infrastructure cost. Start at the top. Move down only when the simpler approach demonstrably fails on your actual queries.
 
