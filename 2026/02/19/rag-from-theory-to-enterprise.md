@@ -23,20 +23,12 @@ Before talking about RAG, it's worth being precise about what "retrieval" means.
 <div class="cde-window-body">
 <div class="mermaid">
 graph LR
-    EM[Exact Match<br/>grep / regex / SQL]
-    SQL[Structured Queries<br/>SQL + Text2SQL]
-    BM25[Lexical Search<br/>BM25 / TF-IDF]
-    HYB[Hybrid<br/>BM25 + Semantic]
-    VEC[Dense Retrieval<br/>Vector Embeddings]
-    GRAPH[Graph-based<br/>Knowledge Graph]
-    FINE[Fine-tuned<br/>Domain Embeddings]
-
-    EM -->|more complexity| SQL
-    SQL -->|more complexity| BM25
-    BM25 -->|more complexity| HYB
-    HYB -->|more complexity| VEC
-    VEC -->|more complexity| GRAPH
-    GRAPH -->|more complexity| FINE
+    EM[Exact Match] -->|more complexity| SQ[Structured SQL]
+    SQ -->|more complexity| BM[Lexical BM25]
+    BM -->|more complexity| HY[Hybrid Search]
+    HY -->|more complexity| VE[Dense Vectors]
+    VE -->|more complexity| GR[Graph Retrieval]
+    GR -->|more complexity| FI[Fine-tuned Embeddings]
 </div>
 </div>
 </div>
@@ -275,18 +267,16 @@ The broader point: the most capable AI coding systems in 2026 have implicitly va
 <div class="mermaid">
 graph LR
     TASK[Coding Task] --> Q1{Symbol name known?}
-    Q1 -->|Yes| GREP[Grep / Glob<br/>exact match]
+    Q1 -->|Yes| GREP[Grep / Glob]
     Q1 -->|No| Q2{File path known?}
-    Q2 -->|Yes| READ[Read<br/>direct access]
+    Q2 -->|Yes| READ[Read file directly]
     Q2 -->|No| Q3{Structural pattern?}
-    Q3 -->|Yes| AST[AST Search<br/>Tree-sitter / ctags]
-    Q3 -->|No| SEM[Semantic Search<br/>last resort]
-
+    Q3 -->|Yes| AST[AST Search]
+    Q3 -->|No| SEM[Semantic Search]
     GREP --> CTX[Context injected into LLM]
     READ --> CTX
     AST --> CTX
     SEM --> CTX
-
 </div>
 </div>
 </div>
