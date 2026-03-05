@@ -397,35 +397,54 @@ semantic_cache:
   embeddings_api_key: "sk-embed-secret"
 ```
 
-## Building and running
+## Getting the router
 
-### Prerequisites
+### Pre-built releases
+
+Every tagged version triggers a GitHub Actions workflow that builds a Linux amd64 binary, packages it with configs, docs, and scripts, and publishes it as a [GitHub Release](https://github.com/bet0x/vllm-router/releases):
 
 ```bash
-# Rust (stable)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# System dependencies (Ubuntu/Debian)
-sudo apt-get install -y protobuf-compiler libprotobuf-dev libsentencepiece-dev
+# Download the latest release
+curl -LO https://github.com/bet0x/vllm-router/releases/latest/download/vllm-router-v0.6.5-linux-amd64.tar.gz
+tar xzf vllm-router-v0.6.5-linux-amd64.tar.gz
+./vllm-router-v0.6.5-linux-amd64/vllm-router --config-file configs/round-robin.yaml
 ```
 
-### Build
+### Docker images
+
+Docker images are built automatically on every release and pushed to both Docker Hub and GitHub Container Registry:
 
 ```bash
+# Docker Hub
+docker pull barrahome/vllm-router:latest
+docker pull barrahome/vllm-router:v0.6.5
+
+# GitHub Container Registry
+docker pull ghcr.io/bet0x/vllm-router:latest
+docker pull ghcr.io/bet0x/vllm-router:v0.6.5
+```
+
+Run it with your config file mounted:
+
+```bash
+docker run -p 3000:3000 -p 29000:29000 \
+  -v /path/to/config.yaml:/config.yaml \
+  barrahome/vllm-router:latest --config-file /config.yaml
+```
+
+### Build from source
+
+If you need the Redis cache feature or want to modify the code:
+
+```bash
+# Prerequisites (Ubuntu/Debian)
+sudo apt-get install -y protobuf-compiler libprotobuf-dev libsentencepiece-dev
+
 # Standard build
 cargo build --release
 
 # With Redis cache support
 cargo build --release --features redis-cache
-```
-
-### Docker
-
-```bash
-docker build -f Dockerfile.router -t vllm-router:latest .
-docker run -p 3000:3000 -p 29000:29000 \
-  -v /path/to/config.yaml:/config.yaml \
-  vllm-router:latest --config-file /config.yaml
 ```
 
 ### Quick test
