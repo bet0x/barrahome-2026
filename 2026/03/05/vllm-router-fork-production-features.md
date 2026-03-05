@@ -453,6 +453,10 @@ curl http://localhost:3000/v1/chat/completions \
 - **Set up the admin API key.** The drain and reload endpoints are powerful — protect them.
 - **Monitor with Prometheus.** The fork exports per-routing-decision metrics. Use them to understand cache hit rates, cluster routing decisions, and worker load distribution.
 
+## Feedback
+
+If you're using this fork — or considering it — I'd genuinely like to hear from you. Bug reports, feature requests, questions, and general feedback are all welcome on the [GitHub issues page](https://github.com/bet0x/vllm-router/issues). I'm especially interested in hearing about real-world deployments: what worked, what didn't, and what features would make it more useful for your setup.
+
 ## Sources
 
 - [Fork repository](https://github.com/bet0x/vllm-router) — full source code, documentation, and example configs
