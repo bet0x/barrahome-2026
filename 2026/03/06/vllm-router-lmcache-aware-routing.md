@@ -6,7 +6,7 @@
 
 ---
 
-In my [previous article](/2026/03/05/vllm-router-fork-production-features) I covered the production features in [my vLLM router fork](https://github.com/bet0x/vllm-router): YAML config, response caching, semantic cluster routing, admin API. This article covers the latest addition — and arguably the most consequential one for PD disaggregation: **LMCache-aware routing**.
+In my [previous article](/2026/03/05/vllm-router-fork-production-features.md) I covered the production features in [my vLLM router fork](https://github.com/bet0x/vllm-router): YAML config, response caching, semantic cluster routing, admin API. This article covers the latest addition — and arguably the most consequential one for PD disaggregation: **LMCache-aware routing**.
 
 The core idea is simple: instead of guessing which worker has KV cache (the `cache_aware` approach with a radix tree), ask the system that actually manages the cache. The LMCache controller knows exactly which worker holds how many cached KV chunks. The router polls it and routes accordingly.
 
@@ -280,11 +280,11 @@ Routing to the worker that has the KV in local CPU (~10us) is still two orders o
 
 I'm currently running Redis for both layers, but my intention is to migrate to [Valkey](https://github.com/valkey-io/valkey) after more extensive testing. Valkey is the open-source fork of Redis (post-license change), wire-compatible, and backed by the Linux Foundation. The LMCache and router Redis clients use standard Redis protocol — the migration should be a URL swap, but I want to validate performance under KV cache workloads before committing.
 
-For my LMCache + Redis setup, see my [previous article on LMCache + Redis](/2026/02/08/lmcache-redis-distributed-kv-cache).
+For my LMCache + Redis setup, see my [previous article on LMCache + Redis](/2026/02/08/lmcache-redis-distributed-kv-cache.md).
 
 ### Router + Redis: Response Caching
 
-Separately, the router fork supports Redis as a [response cache backend](/2026/03/05/vllm-router-fork-production-features). This is an entirely different use case: caching complete LLM responses (not KV chunks) so that identical requests return instantly without touching any vLLM worker. When running multiple router instances, a shared Redis cache ensures deduplication across all instances.
+Separately, the router fork supports Redis as a [response cache backend](/2026/03/05/vllm-router-fork-production-features.md). This is an entirely different use case: caching complete LLM responses (not KV chunks) so that identical requests return instantly without touching any vLLM worker. When running multiple router instances, a shared Redis cache ensures deduplication across all instances.
 
 These two Redis uses are complementary:
 - **LMCache Redis** prevents KV recomputation across workers (inference-level optimization)
@@ -361,6 +361,6 @@ That's the end state for cache-aware routing: real state, exact matching, cross-
 
 - [Fork repository](https://github.com/bet0x/vllm-router) — full source code and configs
 - [LMCache project](https://github.com/LMCache/LMCache) — the KV cache management system
-- [Previous article: vLLM Router fork features](/2026/03/05/vllm-router-fork-production-features)
-- [vLLM Router and PD Disaggregation](/2026/02/07/vllm-router-pd-disaggregation) — background on cache-aware routing
-- [LMCache + Redis: Distributed KV Cache](/2026/02/08/lmcache-redis-distributed-kv-cache) — LMCache deep dive
+- [Previous article: vLLM Router fork features](/2026/03/05/vllm-router-fork-production-features.md)
+- [vLLM Router and PD Disaggregation](/2026/02/07/vllm-router-pd-disaggregation.md) — background on cache-aware routing
+- [LMCache + Redis: Distributed KV Cache](/2026/02/08/lmcache-redis-distributed-kv-cache.md) — LMCache deep dive
