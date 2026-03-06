@@ -253,6 +253,40 @@ Full configuration examples are in the [repository](https://github.com/bet0x/vll
 
 ---
 
+## Redis at Two Layers
+
+In my deployment I use Redis at two distinct layers, and it's worth being explicit about why they're different things.
+
+### LMCache + Redis: Distributed KV Cache
+
+LMCache supports a [multi-tier storage hierarchy](https://docs.lmcache.ai/kv_cache/redis.html): GPU memory, CPU DRAM, local disk, and a remote backend. When configured with `remote_url: "redis://host:6379"`, KV cache chunks are serialized and stored in Redis as the outermost tier. This means any worker can pull cached KV chunks from Redis — even if it didn't compute them originally.
+
+This changes the cache locality picture. Without Redis, KV cache is trapped on the worker that computed it. If the router sends Turn 2 to the wrong worker, that worker starts from scratch. With Redis as remote backend, the wrong worker can still pull the KV from Redis — it's slower than a local CPU cache hit, but faster than full recomputation.
+
+**Does this make `lmcache_aware` routing unnecessary?** No. The storage hierarchy matters:
+
+<table>
+<tr><th>Cache Location</th><th>Latency</th><th>What Triggers It</th></tr>
+<tr><td>Local GPU memory</td><td>&lt;1us</td><td>Same worker, same session, still in VRAM</td></tr>
+<tr><td>Local CPU DRAM</td><td>~10us</td><td>Same worker, evicted from GPU, still in RAM</td></tr>
+<tr><td>Redis (remote)</td><td>~1ms</td><td>Any worker, fetched over network</td></tr>
+<tr><td>Recomputation</td><td>~100ms+</td><td>Cache miss everywhere</td></tr>
+</table>
+
+Routing to the worker that has the KV in local CPU (~10us) is still two orders of magnitude faster than pulling from Redis (~1ms). And Redis pulls add network traffic that scales with context length. `lmcache_aware` routing minimizes Redis fallback by preferring workers with local cache. Redis is the safety net, not the primary path.
+
+For my LMCache + Redis setup, see my [previous article on LMCache + Redis](/2026/02/08/lmcache-redis-distributed-kv-cache).
+
+### Router + Redis: Response Caching
+
+Separately, the router fork supports Redis as a [response cache backend](/2026/03/05/vllm-router-fork-production-features). This is an entirely different use case: caching complete LLM responses (not KV chunks) so that identical requests return instantly without touching any vLLM worker. When running multiple router instances, a shared Redis cache ensures deduplication across all instances.
+
+These two Redis uses are complementary:
+- **LMCache Redis** prevents KV recomputation across workers (inference-level optimization)
+- **Router Redis** prevents duplicate inference entirely for repeated prompts (request-level optimization)
+
+---
+
 ## Two Phases
 
 ### Phase 1: Occupancy Routing (implemented)
