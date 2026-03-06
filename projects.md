@@ -43,6 +43,30 @@ The entire publishing workflow is: write a `.md` file, run the index generator, 
 </div>
 
 <div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>vllm-router</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
+
+A fork of the [vLLM project router](https://github.com/vllm-project/router) — a Rust-based request router for vLLM inference deployments. The fork adds production and experimental features that don't exist upstream: YAML configuration, LMCache-aware routing, two-level response caching (exact-match + semantic), semantic cluster routing, Anthropic Messages API support, graceful worker drain, hot config reload, per-worker API keys, and Redis cache backend.
+
+Key features:
+
+- **LMCache-aware routing** — queries the LMCache controller for real KV cache state instead of guessing with a radix tree
+- **PD disaggregation** with independent prefill/decode policies and sticky session affinity
+- **Response caching** — exact-match (FNV-1a) and semantic similarity (cosine via embeddings) with Redis backend
+- **Semantic cluster routing** — route requests by prompt content to specialized worker groups
+- **Admin API** — graceful drain, hot config reload, per-routing Prometheus metrics
+- Pre-built releases and Docker images on every tagged version
+
+Written in Rust. Built on top of the upstream vLLM router foundation.
+
+📄 **License:** Apache-2.0
+🐳 **Docker:** `barrahome/vllm-router:latest`
+💻 **Repo:** [github.com/bet0x/vllm-router](https://github.com/bet0x/vllm-router)
+
+</div>
+</div>
+
+<div class="cde-window">
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>semlix</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
