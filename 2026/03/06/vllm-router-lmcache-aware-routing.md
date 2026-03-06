@@ -106,6 +106,45 @@ When the controller is unreachable — timeout, error, not yet deployed — the 
 
 ---
 
+## Regular Mode: The Simplest Win
+
+The most straightforward use of `lmcache_aware` is in regular (non-PD) mode — multiple vLLM workers behind the router, all serving the same model. No prefill/decode split, just a pool of workers.
+
+```yaml
+mode:
+  type: regular
+  worker_urls:
+    - "http://vllm-worker-001:8000"
+    - "http://vllm-worker-002:8000"
+
+policy:
+  type: lmcache_aware
+  controller_url: "http://lmcache-controller:9000"
+  poll_interval_secs: 10
+  cache_weight: 0.7
+  lookup_mode: occupancy
+  fallback_policy: "power_of_two"
+  controller_timeout_ms: 2000
+  lmcache_worker_map:
+    "vllm-001": "http://vllm-worker-001:8000"
+    "vllm-002": "http://vllm-worker-002:8000"
+```
+
+This is the setup that gives you the biggest improvement with the least architectural change. You're already running multiple workers — you already have cache affinity problems. Every multi-turn conversation that lands on a different worker than its previous turn wastes GPU cycles recomputing KV.
+
+With `lmcache_aware` in regular mode:
+
+- Turn 1 goes to Worker 1 (load balanced, both workers are empty)
+- LMCache on Worker 1 reports 100 cached chunks to the controller
+- Turn 2 arrives — the router polls the controller, sees Worker 1 has 100 chunks, Worker 2 has 10
+- Turn 2 routes to Worker 1 — prefix cache hit, skip recomputation
+
+Without it, Turn 2 goes to Worker 2 via round robin or power-of-two — full recomputation.
+
+This is the right starting point for most teams. If you're running multi-turn workloads behind multiple vLLM instances, add the LMCache controller and switch to `lmcache_aware` before even considering PD disaggregation.
+
+---
+
 ## Why This Changes PD Disaggregation
 
 In the standard PD disaggregation model, the mental model is clean:
@@ -197,7 +236,9 @@ Both policies aim for the same goal — route to the worker with the most releva
 <tr><td>Infrastructure required</td><td>None — runs standalone</td><td>LMCache controller + LMCache on each worker</td></tr>
 <tr><td>Load balancing</td><td>Dual-mode: cache-based when balanced, load-based when imbalanced</td><td>Single formula: weighted score with tunable cache_weight</td></tr>
 <tr><td>Per-request overhead</td><td>Radix tree lookup (microseconds)</td><td>HashMap read (microseconds) — polling is background</td></tr>
-<tr><td>Best for</td><td>Deployments without LMCache, simpler setups</td><td>Deployments with LMCache, multi-turn, PD disaggregation</td></tr>
+<tr><td>Regular mode</td><td>Works (but guesses)</td><td>Works — simplest and most impactful improvement</td></tr>
+<tr><td>PD disaggregation</td><td>Works as prefill policy (guesses)</td><td>Works as prefill policy with real cache visibility</td></tr>
+<tr><td>Best for</td><td>Deployments without LMCache, simpler setups</td><td>Any deployment with LMCache: regular or PD, multi-turn workloads</td></tr>
 </table>
 
 The `cache_aware` policy isn't obsolete — it's the right choice when you don't have LMCache deployed. It works well enough for many workloads and has zero infrastructure dependencies. But when you have LMCache (which you should if you're running multi-turn at scale), `lmcache_aware` is strictly better because it uses real data instead of approximations.
@@ -337,11 +378,12 @@ Phase 2 is where `lmcache_aware` becomes qualitatively different from any other 
 
 ## Practical Takeaways
 
+- **Start with regular mode.** If you have multiple vLLM workers behind a router, `lmcache_aware` in regular mode is the simplest and highest-impact change. You don't need PD disaggregation to benefit.
 - **Start with Phase 1 (occupancy).** It requires zero changes to the tokenizer setup and gives you the biggest improvement over `cache_aware` or `power_of_two` — real cache visibility instead of guessing.
 - **Use `cache_weight: 0.7` as default.** This strongly prefers cached workers but doesn't create hot spots. Tune down to 0.5 if you see load imbalance.
 - **Set `fallback_policy: "power_of_two"`.** If the controller goes down, this is the best general-purpose fallback. The transition is transparent to clients.
 - **Always configure `lmcache_worker_map`.** Without it, the routing degrades to pure load balancing because the router can't correlate controller data to its workers.
-- **In PD mode: `lmcache_aware` for prefill, `consistent_hash` for decode.** This is the recommended production configuration for multi-turn workloads with LMCache.
+- **For PD mode: `lmcache_aware` for prefill, `consistent_hash` for decode.** This is the recommended production configuration when you do need PD disaggregation with multi-turn workloads.
 - **Monitor cache hit rates.** The router exports per-policy Prometheus metrics. Compare cache hit rates between `cache_aware` and `lmcache_aware` before and after deployment.
 - **The controller is lightweight.** It needs 500m CPU and 512Mi memory. Don't skip deploying it because you think it's heavy — it's cheaper than the GPU cycles you waste on cache misses.
 
