@@ -121,14 +121,47 @@
                     }
                 });
 
-                // set page title from first heading
+                // set page title and meta description from content
                 var l = ["h1", "h2", "h3"];
+                var title = "";
                 for (var i = 0; i < l.length; i++) {
                     var h = document.getElementsByTagName(l[i]);
                     if (h.length > 0) {
-                        document.title = h[0].innerText + " - barrahome.org";
+                        title = h[0].innerText;
+                        document.title = title + " - barrahome.org";
                         break;
                     }
+                }
+                if (title) {
+                    var desc = title;
+                    var ps = document.querySelectorAll(".content p");
+                    for (var i = 0; i < ps.length; i++) {
+                        var txt = ps[i].textContent.trim();
+                        if (
+                            txt &&
+                            !txt.match(/^(\*\*)?Published on/) &&
+                            !txt.match(/^(\*\*)?Tags:/) &&
+                            !txt.match(/^Filter:/)
+                        ) {
+                            desc = txt.substring(0, 160);
+                            break;
+                        }
+                    }
+                    document
+                        .querySelector('meta[name="description"]')
+                        .setAttribute("content", desc);
+                    document
+                        .querySelector('meta[property="og:title"]')
+                        .setAttribute("content", title + " - barrahome.org");
+                    document
+                        .querySelector('meta[property="og:description"]')
+                        .setAttribute("content", desc);
+                    document
+                        .querySelector('meta[property="og:url"]')
+                        .setAttribute("content", window.location.href);
+                    document
+                        .querySelector('link[rel="canonical"]')
+                        .setAttribute("href", window.location.href);
                 }
 
                 // global tags sidebar from tags.js
