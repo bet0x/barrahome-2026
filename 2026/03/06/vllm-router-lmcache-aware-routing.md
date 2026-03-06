@@ -275,6 +275,8 @@ This changes the cache locality picture. Without Redis, KV cache is trapped on t
 
 Routing to the worker that has the KV in local CPU (~10us) is still two orders of magnitude faster than pulling from Redis (~1ms). And Redis pulls add network traffic that scales with context length. `lmcache_aware` routing minimizes Redis fallback by preferring workers with local cache. Redis is the safety net, not the primary path.
 
+I'm currently running Redis for both layers, but my intention is to migrate to [Valkey](https://github.com/valkey-io/valkey) after more extensive testing. Valkey is the open-source fork of Redis (post-license change), wire-compatible, and backed by the Linux Foundation. The LMCache and router Redis clients use standard Redis protocol — the migration should be a URL swap, but I want to validate performance under KV cache workloads before committing.
+
 For my LMCache + Redis setup, see my [previous article on LMCache + Redis](/2026/02/08/lmcache-redis-distributed-kv-cache).
 
 ### Router + Redis: Response Caching
