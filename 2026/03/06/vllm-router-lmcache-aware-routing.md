@@ -40,20 +40,14 @@ The `lmcache_aware` policy replaces all of this with a single source of truth: t
 <div class="mermaid">
 graph LR
     C[Client Request] --> R[vLLM Router]
-    R -->|response cache| RR[(Redis / Valkey<br/>Response Cache)]
+    R -->|response cache| RR[(Response Cache<br/>Redis / Valkey)]
     R -->|polls every 10s| LC[LMCache Controller]
-    R -->|routes to best score| W1
-    R -->|routes to best score| W2
-
-    subgraph Workers
-        W1[vLLM Worker 1<br/>+ LMCache]
-        W2[vLLM Worker 2<br/>+ LMCache]
-    end
-
-    LC -->|ZMQ reports| W1
-    LC -->|ZMQ reports| W2
-    W1 -->|KV chunks| RD[(Redis / Valkey<br/>KV Cache)]
-    W2 -->|KV chunks| RD
+    R -->|routes| W1[Worker 1 + LMCache]
+    R -->|routes| W2[Worker 2 + LMCache]
+    LC -->|ZMQ| W1
+    LC -->|ZMQ| W2
+    W1 --> RD[(KV Cache<br/>Redis / Valkey)]
+    W2 --> RD
 </div>
 </div>
 </div>
