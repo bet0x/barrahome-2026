@@ -354,11 +354,13 @@ The router polls `GET /controller/workers` at the configured interval. Each work
 
 This is a coarse signal — it tells you "Worker 1 has more cache than Worker 2" but not "Worker 1 has cache for this specific conversation". In practice, it's still far better than guessing because it reflects real state including evictions, and in multi-turn workloads the worker with the most cache is usually the one that processed your previous turns.
 
-### Phase 2: Prefix Lookup (planned)
+### Phase 2: Prefix Lookup (not yet implemented)
 
 `lookup_mode: prefix_lookup`
 
-Per-request `POST /lookup` to the controller with the tokenized prompt. The controller returns which worker has the longest cached prefix for that specific request:
+The config accepts this value and the plumbing exists (`needs_request_text()` returns true in this mode), but the actual `POST /lookup` call to the controller is **not implemented yet**. Today, setting `lookup_mode: prefix_lookup` will not give you per-request prefix matching — routing still uses the occupancy-based scoring.
+
+The design for Phase 2: per-request `POST /lookup` to the controller with the tokenized prompt. The controller already exposes this endpoint in LMCache (`lmcache.v1.api_server`):
 
 ```
 POST /lookup
@@ -368,11 +370,14 @@ Response:
 {"layout_info": {"vllm-001": ["LocalCPUBackend", 768]}}
 ```
 
-This is exact prefix matching — not occupancy, not heuristics. The response tells you "Worker vllm-001 has 768 tokens cached for this exact prefix." This is the most precise routing signal possible.
+The `layout_info` maps `instance_id` to `(location, matched_token_count)`. This gives exact prefix-match routing — "Worker vllm-001 has 768 tokens cached for this exact prefix."
 
-**Requirements:** the router tokenizer must produce the same token IDs as vLLM/LMCache (same HuggingFace model). This adds per-request latency for the lookup call, mitigated by the `controller_timeout_ms` setting.
+**What's needed to implement it:**
+- The router needs to tokenize the incoming prompt before the lookup call. The tokenizer must produce the same token IDs as vLLM/LMCache (same HuggingFace model). The fork already supports HuggingFace, TikToken, and SentencePiece tokenizers.
+- The `select_worker_with_headers` method needs to call `POST /lookup` with the token IDs and use the `matched_token_count` as the cache score instead of `key_count`.
+- Latency budget: the lookup adds a per-request HTTP call, mitigated by `controller_timeout_ms`.
 
-Phase 2 is where `lmcache_aware` becomes qualitatively different from any other routing policy — it's the only one that routes based on actual cached content for the specific incoming request.
+Phase 2 is where `lmcache_aware` will become qualitatively different from any other routing policy — routing based on actual cached content for the specific incoming request, not aggregate occupancy.
 
 ---
 
@@ -391,13 +396,16 @@ Phase 2 is where `lmcache_aware` becomes qualitatively different from any other 
 
 ## What's Next
 
-Phase 2 (prefix lookup) is the big one. Once per-request prefix matching is live, the router will have exact knowledge of what's cached where for every incoming request. Combined with P2P cache sharing between LMCache instances, this creates a setup where:
+**Phase 2 (prefix lookup)** is the priority. The LMCache controller already exposes the `/lookup` endpoint — the missing piece is the router-side implementation: tokenize the prompt, call the endpoint, use the matched token count for scoring. The plumbing exists; the logic doesn't yet.
 
-1. The router routes Turn 2 to the worker that has the longest prefix for this specific conversation
-2. If no single worker has the full prefix, LMCache can pull missing chunks from another worker via P2P (NIXL)
-3. The decode worker receives the KV cache from the prefill worker and continues generation
+Once implemented, combined with P2P cache sharing between LMCache instances, the end state looks like:
 
-This is the end state for cache-aware PD disaggregation: real state, exact matching, cross-worker sharing. Prefill workers aren't stateless. The router knows it.
+1. The router tokenizes the incoming prompt and asks the controller which worker has the longest cached prefix
+2. Routes to that worker — exact prefix cache hit
+3. If no single worker has the full prefix, LMCache can pull missing chunks from another worker via P2P (NIXL)
+4. The decode worker receives the KV cache and continues generation
+
+That's the end state for cache-aware routing: real state, exact matching, cross-worker sharing.
 
 ---
 
