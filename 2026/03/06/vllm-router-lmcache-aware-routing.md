@@ -45,6 +45,11 @@ graph LR
     LC -->|ZMQ reports| W2[vLLM Worker 2<br/>+ LMCache]
     R -->|routes to best score| W1
     R -->|routes to best score| W2
+    W1 -->|KV chunks| RD[(Redis / Valkey)]
+    W2 -->|KV chunks| RD
+    RD -->|cache miss fallback| W1
+    RD -->|cache miss fallback| W2
+    R -->|response cache| RR[(Redis / Valkey<br/>Response Cache)]
 </div>
 </div>
 </div>
