@@ -1,0 +1,368 @@
+# LMCache-Aware Routing: When Prefill Workers Stop Being Stateless
+
+**Published on:** 2026/03/06
+
+**Tags:** vllm, rust, lmcache, inference, kv-cache, optimization, performance
+
+---
+
+In my [previous article](/2026/03/05/vllm-router-fork-production-features) I covered the production features in [my vLLM router fork](https://github.com/bet0x/vllm-router): YAML config, response caching, semantic cluster routing, admin API. This article covers the latest addition — and arguably the most consequential one for PD disaggregation: **LMCache-aware routing**.
+
+The core idea is simple: instead of guessing which worker has KV cache (the `cache_aware` approach with a radix tree), ask the system that actually manages the cache. The LMCache controller knows exactly which worker holds how many cached KV chunks. The router polls it and routes accordingly.
+
+But the implications are bigger than a routing improvement. With LMCache-aware routing, **prefill workers are no longer stateless**. The router knows they hold cache state. It routes to preserve it. This changes the fundamental assumption of PD disaggregation.
+
+---
+
+## The Problem With Guessing
+
+The existing `cache_aware` policy in the vLLM router maintains an approximate radix tree. Every time a request is routed to a worker, the router inserts the prompt's token prefix into a per-worker tree. On the next request, it walks the tree to find which worker has the longest matching prefix and routes there.
+
+This works — until it doesn't:
+
+**Evictions are invisible.** When a vLLM worker evicts KV cache entries due to memory pressure, the router's radix tree doesn't know. It still thinks the prefix is there. It routes the request, the worker recomputes from scratch, and you get a cache miss that looks like a cache hit from the router's perspective.
+
+**Multi-instance state diverges.** If you run multiple router instances (which you should, for HA), each builds its own radix tree independently. Their views of cache state drift apart. One router sends multi-turn session requests to worker A, another sends to worker B — both think they're doing cache-aware routing, both are wrong.
+
+**Cold starts are blind.** After a router restart, the radix tree is empty. Every request is a guess until enough history accumulates to rebuild an accurate tree. During this window, cache hit rates drop to near zero.
+
+The `cache_aware` policy also has a complex dual-mode behavior — it switches between cache-based and load-based routing depending on load imbalance. This works but makes the routing behavior harder to predict and debug.
+
+---
+
+## Data-Driven Routing With LMCache
+
+The `lmcache_aware` policy replaces all of this with a single source of truth: the LMCache controller.
+
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>LMCache-Aware Routing Architecture</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
+<div class="mermaid">
+graph LR
+    C[Client Request] --> R[vLLM Router]
+    R -->|polls every 10s| LC[LMCache Controller]
+    LC -->|ZMQ reports| W1[vLLM Worker 1<br/>+ LMCache]
+    LC -->|ZMQ reports| W2[vLLM Worker 2<br/>+ LMCache]
+    R -->|routes to best score| W1
+    R -->|routes to best score| W2
+</div>
+</div>
+</div>
+
+The architecture has three components:
+
+**LMCache on each vLLM worker** — configured with `enable_controller: true`, each worker reports its cache state to the controller via ZMQ. This includes `key_count` (number of cached KV chunks), heartbeat timestamps, and instance identity.
+
+**LMCache controller** — a lightweight FastAPI service (no GPU needed) that aggregates cache state from all workers and exposes it via HTTP. It runs as a single pod in Kubernetes.
+
+**The router's `lmcache_aware` policy** — spawns an async Tokio task that polls `GET /controller/workers` at a configurable interval. It maintains an in-memory map of `instance_id → key_count` and uses this to score routing decisions.
+
+### The Scoring Formula
+
+For each healthy worker, the policy computes:
+
+```
+score = cache_weight * normalized_key_count + (1 - cache_weight) * normalized_inverse_load
+```
+
+Where:
+- `normalized_key_count` = worker's `key_count` / max `key_count` across all workers
+- `normalized_inverse_load` = (max_load - worker_load) / max_load
+- `cache_weight` is a tunable parameter (default 0.7, range 0.0–1.0)
+
+The worker with the highest score wins. At `cache_weight=1.0`, routing is purely cache-affinity. At `cache_weight=0.0`, it's purely load-based. The default of 0.7 strongly prefers workers with more cached data but still accounts for load distribution.
+
+```rust
+fn compute_score(
+    &self,
+    worker: &dyn Worker,
+    max_key_count: usize,
+    max_load: usize,
+    instance_id: Option<&str>,
+    cache_state: &HashMap<String, WorkerCacheInfo>,
+) -> f64 {
+    let cache_weight = self.config.cache_weight as f64;
+    let load_weight = 1.0 - cache_weight;
+
+    let normalized_cache = if let Some(id) = instance_id {
+        if let Some(info) = cache_state.get(id) {
+            if max_key_count > 0 {
+                info.key_count as f64 / max_key_count as f64
+            } else { 0.0 }
+        } else { 0.0 }
+    } else { 0.0 };
+
+    let normalized_inverse_load = if max_load > 0 {
+        (max_load - worker.load().min(max_load)) as f64 / max_load as f64
+    } else { 1.0 };
+
+    cache_weight * normalized_cache + load_weight * normalized_inverse_load
+}
+```
+
+### Graceful Fallback
+
+When the controller is unreachable — timeout, error, not yet deployed — the policy delegates to a configurable fallback (default: `power_of_two`). No error reaches the client. When the controller comes back, routing automatically switches to cache-aware. This makes deployment incremental: you can add the controller later without changing the router config.
+
+---
+
+## Why This Changes PD Disaggregation
+
+In the standard PD disaggregation model, the mental model is clean:
+
+- **Prefill workers** are stateless. Any prefill worker can handle any request. Use load balancing.
+- **Decode workers** are stateful. They hold the KV cache across turns. Use session affinity.
+
+This mental model is wrong as soon as you introduce LMCache.
+
+With LMCache enabled, prefill workers **also** hold KV cache. When Worker 1 prefills a request, LMCache stores the computed KV chunks in local CPU memory (and optionally reports them to the controller). If Turn 2 of the same conversation arrives at Worker 1, it gets a prefix cache hit and skips recomputation. If it arrives at Worker 2, it recomputes everything.
+
+**Prefill workers are now stateful.** The question is whether the router knows it.
+
+Without `lmcache_aware`, the answer is no — the router treats prefill workers as interchangeable. With `lmcache_aware`, the router has real visibility into which prefill worker holds cached data for which conversations.
+
+This is the configuration that makes PD disaggregation cache-aware at both layers:
+
+```yaml
+mode:
+  type: pd_disaggregation
+  prefill_urls:
+    - "http://prefill-1:8081"
+    - "http://prefill-2:8081"
+  decode_urls:
+    - "http://decode-1:8083"
+    - "http://decode-2:8083"
+
+prefill_policy:
+  type: lmcache_aware
+  controller_url: "http://lmcache-controller:9000"
+  poll_interval_secs: 10
+  cache_weight: 0.8
+  fallback_policy: "power_of_two"
+  controller_timeout_ms: 2000
+  lmcache_worker_map:
+    "prefill-instance-1": "http://prefill-1:8081"
+    "prefill-instance-2": "http://prefill-2:8081"
+
+decode_policy:
+  type: consistent_hash
+  virtual_nodes: 160
+```
+
+**Prefill side:** `lmcache_aware` routes to the worker with the most relevant cached KV chunks. In multi-turn conversations, this means Turn 2 goes to the same prefill worker that processed Turn 1 — because the controller reports that worker has 100 cached chunks while others have 10.
+
+**Decode side:** `consistent_hash` with sticky sessions pins each conversation to the same decode worker. This hasn't changed — decode workers accumulate state across turns by design.
+
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>PD Disaggregation: Before and After LMCache-Aware</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
+<div class="mermaid">
+sequenceDiagram
+    participant Client
+    participant Router
+    participant LC as LMCache Controller
+    participant P1 as Prefill Worker 1
+    participant P2 as Prefill Worker 2
+    participant D1 as Decode Worker
+    Client->>Router: Turn 1
+    Router->>P1: Route to Prefill 1 (load balanced)
+    P1->>D1: Transfer KV cache via NIXL
+    Note over P1: LMCache reports 100 chunks to controller
+    D1-->>Client: Response
+    Client->>Router: Turn 2
+    Router->>LC: Poll: P1=100 chunks, P2=10 chunks
+    Note over Router: Score P1=0.87, P2=0.23
+    Router->>P1: Route to Prefill 1 (cache hit)
+    Note over P1: Prefix cache hit, only compute new tokens
+    P1->>D1: Transfer incremental KV
+    D1-->>Client: Response (faster)
+</div>
+</div>
+</div>
+
+Without `lmcache_aware`, Turn 2 might go to Prefill Worker 2 via round robin or power-of-two — full recomputation, no cache benefit, wasted GPU cycles.
+
+---
+
+## cache_aware vs lmcache_aware
+
+Both policies aim for the same goal — route to the worker with the most relevant cache. They differ fundamentally in how they know where the cache is:
+
+<table>
+<tr><th>Aspect</th><th>cache_aware</th><th>lmcache_aware</th></tr>
+<tr><td>Cache state source</td><td>Approximate radix tree built from request history</td><td>Real state from LMCache controller</td></tr>
+<tr><td>Eviction visibility</td><td>No — tree doesn't know when vLLM evicts</td><td>Yes — controller reflects actual cache occupancy</td></tr>
+<tr><td>Multi-router consistency</td><td>No — each router builds its own tree</td><td>Yes — all routers poll the same controller</td></tr>
+<tr><td>Cold start behavior</td><td>Empty tree, blind routing until history accumulates</td><td>Polls controller immediately, gets current state</td></tr>
+<tr><td>Infrastructure required</td><td>None — runs standalone</td><td>LMCache controller + LMCache on each worker</td></tr>
+<tr><td>Load balancing</td><td>Dual-mode: cache-based when balanced, load-based when imbalanced</td><td>Single formula: weighted score with tunable cache_weight</td></tr>
+<tr><td>Per-request overhead</td><td>Radix tree lookup (microseconds)</td><td>HashMap read (microseconds) — polling is background</td></tr>
+<tr><td>Best for</td><td>Deployments without LMCache, simpler setups</td><td>Deployments with LMCache, multi-turn, PD disaggregation</td></tr>
+</table>
+
+The `cache_aware` policy isn't obsolete — it's the right choice when you don't have LMCache deployed. It works well enough for many workloads and has zero infrastructure dependencies. But when you have LMCache (which you should if you're running multi-turn at scale), `lmcache_aware` is strictly better because it uses real data instead of approximations.
+
+---
+
+## Setting It Up
+
+### Prerequisites
+
+You need three components running:
+
+**1. LMCache controller** — a lightweight pod (no GPU):
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lmcache-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lmcache-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lmcache-controller
+    spec:
+      containers:
+        - name: controller
+          image: barrahome/lmcache-controller:v0.3.15
+          ports:
+            - containerPort: 9000
+            - containerPort: 8300
+            - containerPort: 8400
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+```
+
+**2. LMCache on each vLLM worker** — with controller reporting enabled:
+
+```yaml
+# lmcache-config.yaml per worker
+chunk_size: 2048
+local_cpu: true
+max_local_cpu_size: 5
+
+enable_controller: true
+lmcache_instance_id: "vllm-001"
+controller_pull_url: "lmcache-controller:8300"
+controller_reply_url: "lmcache-controller:8400"
+lmcache_worker_ports: 8500
+
+# Optional: P2P cache sharing between workers
+enable_p2p: true
+transfer_channel: "nixl"
+```
+
+**3. Router with `lmcache_aware` policy:**
+
+```yaml
+policy:
+  type: lmcache_aware
+  controller_url: "http://lmcache-controller:9000"
+  poll_interval_secs: 10
+  cache_weight: 0.7
+  fallback_policy: "power_of_two"
+  controller_timeout_ms: 2000
+  lmcache_worker_map:
+    "vllm-001": "http://vllm-worker-001:8000"
+    "vllm-002": "http://vllm-worker-002:8000"
+```
+
+### Verify it's working
+
+```bash
+# Check workers registered with the controller
+curl http://lmcache-controller:9000/controller/workers
+# Returns: {"workers": [...], "total_count": 2}
+
+# Check cache stats
+curl http://lmcache-controller:9000/controller/key-stats
+
+# Router logs should show:
+# INFO LMCache-aware policy initialized. Polling http://lmcache-controller:9000 every 10s.
+# DEBUG LMCache controller poll: 2 workers tracked
+```
+
+### The Worker Map
+
+The `lmcache_worker_map` is the critical configuration that most people will miss. The LMCache controller identifies workers by `instance_id` (e.g., `"vllm-001"`). The router identifies workers by URL (e.g., `"http://vllm-worker-001:8000"`). The map connects these two identities:
+
+```yaml
+lmcache_worker_map:
+  "vllm-001": "http://vllm-worker-001:8000"     # instance_id → router URL
+  "vllm-002": "http://vllm-worker-002:8000"
+```
+
+Without this mapping, the router can't correlate controller cache state to its worker pool. Workers without a mapping get a zero cache score and are only selected for load-based routing.
+
+---
+
+## Two Phases
+
+### Phase 1: Occupancy Routing (implemented)
+
+`lookup_mode: occupancy`
+
+The router polls `GET /controller/workers` at the configured interval. Each worker's total `key_count` (number of cached KV chunks across all sessions) is used for scoring. Workers with more cached data are preferred.
+
+This is a coarse signal — it tells you "Worker 1 has more cache than Worker 2" but not "Worker 1 has cache for this specific conversation". In practice, it's still far better than guessing because it reflects real state including evictions, and in multi-turn workloads the worker with the most cache is usually the one that processed your previous turns.
+
+### Phase 2: Prefix Lookup (planned)
+
+`lookup_mode: prefix_lookup`
+
+Per-request `POST /lookup` to the controller with the tokenized prompt. The controller returns which worker has the longest cached prefix for that specific request:
+
+```
+POST /lookup
+{"tokens": [1, 2, 3, 4, 5, ...]}
+
+Response:
+{"layout_info": {"vllm-001": ["LocalCPUBackend", 768]}}
+```
+
+This is exact prefix matching — not occupancy, not heuristics. The response tells you "Worker vllm-001 has 768 tokens cached for this exact prefix." This is the most precise routing signal possible.
+
+**Requirements:** the router tokenizer must produce the same token IDs as vLLM/LMCache (same HuggingFace model). This adds per-request latency for the lookup call, mitigated by the `controller_timeout_ms` setting.
+
+Phase 2 is where `lmcache_aware` becomes qualitatively different from any other routing policy — it's the only one that routes based on actual cached content for the specific incoming request.
+
+---
+
+## Practical Takeaways
+
+- **Start with Phase 1 (occupancy).** It requires zero changes to the tokenizer setup and gives you the biggest improvement over `cache_aware` or `power_of_two` — real cache visibility instead of guessing.
+- **Use `cache_weight: 0.7` as default.** This strongly prefers cached workers but doesn't create hot spots. Tune down to 0.5 if you see load imbalance.
+- **Set `fallback_policy: "power_of_two"`.** If the controller goes down, this is the best general-purpose fallback. The transition is transparent to clients.
+- **Always configure `lmcache_worker_map`.** Without it, the routing degrades to pure load balancing because the router can't correlate controller data to its workers.
+- **In PD mode: `lmcache_aware` for prefill, `consistent_hash` for decode.** This is the recommended production configuration for multi-turn workloads with LMCache.
+- **Monitor cache hit rates.** The router exports per-policy Prometheus metrics. Compare cache hit rates between `cache_aware` and `lmcache_aware` before and after deployment.
+- **The controller is lightweight.** It needs 500m CPU and 512Mi memory. Don't skip deploying it because you think it's heavy — it's cheaper than the GPU cycles you waste on cache misses.
+
+---
+
+## What's Next
+
+Phase 2 (prefix lookup) is the big one. Once per-request prefix matching is live, the router will have exact knowledge of what's cached where for every incoming request. Combined with P2P cache sharing between LMCache instances, this creates a setup where:
+
+1. The router routes Turn 2 to the worker that has the longest prefix for this specific conversation
+2. If no single worker has the full prefix, LMCache can pull missing chunks from another worker via P2P (NIXL)
+3. The decode worker receives the KV cache from the prefill worker and continues generation
+
+This is the end state for cache-aware PD disaggregation: real state, exact matching, cross-worker sharing. Prefill workers aren't stateless. The router knows it.
+
+---
+
+## Sources
+
+- [Fork repository](https://github.com/bet0x/vllm-router) — full source code and configs
+- [LMCache project](https://github.com/LMCache/LMCache) — the KV cache management system
+- [Previous article: vLLM Router fork features](/2026/03/05/vllm-router-fork-production-features)
+- [vLLM Router and PD Disaggregation](/2026/02/07/vllm-router-pd-disaggregation) — background on cache-aware routing
+- [LMCache + Redis: Distributed KV Cache](/2026/02/08/lmcache-redis-distributed-kv-cache) — LMCache deep dive
