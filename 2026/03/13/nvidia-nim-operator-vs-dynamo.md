@@ -223,11 +223,11 @@ Beyond the core four, Dynamo ships several features worth calling out:
 - You need KV cache offloading because your working set doesn't fit in GPU memory
 - You're willing to invest in the operational complexity for the throughput and latency gains
 
-The honest read: NVIDIA NIM is the right starting point for most teams. It's less to manage and the automatic profile selection genuinely saves time. NVIDIA Dynamo becomes relevant when you've hit the ceiling of what straightforward horizontal scaling gives you — usually when P95 TTFT on long-context requests is too high, or when you're paying for GPU time that's doing redundant prefill compute.
+**The honest read:** NVIDIA NIM is the right starting point for most teams. It's less to manage and the automatic profile selection genuinely saves time. NVIDIA Dynamo becomes relevant when you've hit the ceiling of what straightforward horizontal scaling gives you — usually when P95 TTFT on long-context requests is too high, or when you're paying for GPU time that's doing redundant prefill compute.
 
 They're not mutually exclusive. NVIDIA's direction seems to be positioning Dynamo as the future backbone for high-scale NIM deployments. The Dynamo containers at `nvcr.io/nvidia/ai-dynamo/` package the same vLLM/TRT-LLM/SGLang engines NIM uses, with Dynamo's orchestration layer wrapping them.
 
-A fair caveat: this article focuses on inference serving, and some of the gaps mentioned above — fine-tuning, evaluation, guardrails, data curation — are addressed by other products in NVIDIA's enterprise stack. The NIM Operator already ships CRDs for some of these (NemoCustomizer, NemoEvaluator, NemoGuardrail). That's a broader story for another article; the scope here is specifically what happens between a request arriving and a token going back out.
+**A fair caveat:** this article focuses on inference serving, and some of the gaps mentioned above — fine-tuning, evaluation, guardrails, data curation — are addressed by other products in NVIDIA's enterprise stack. The NIM Operator already ships CRDs for some of these (NemoCustomizer, NemoEvaluator, NemoGuardrail). That's a broader story for another article; the scope here is specifically what happens between a request arriving and a token going back out.
 
 ## What's next
 
