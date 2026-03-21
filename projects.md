@@ -46,18 +46,23 @@ The entire publishing workflow is: write a `.md` file, run the index generator, 
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>vllm-router</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 
-A fork of the [vLLM project router](https://github.com/vllm-project/router) — a Rust-based request router for vLLM inference deployments. The fork adds production and experimental features that don't exist upstream: YAML configuration, LMCache-aware routing, two-level response caching (exact-match + semantic), semantic cluster routing, Anthropic Messages API support, graceful worker drain, hot config reload, per-worker API keys, and Redis cache backend.
+A fork of the [vLLM project router](https://github.com/vllm-project/router) — a Rust-based request router for vLLM inference deployments. The fork adds production and enterprise features that don't exist upstream.
 
 Key features:
 
-- **LMCache-aware routing** — queries the LMCache controller for real KV cache state instead of guessing with a radix tree
+- **LMCache-aware routing** — occupancy and prefix lookup modes, queries the LMCache controller for real KV cache state
 - **PD disaggregation** with independent prefill/decode policies and sticky session affinity
-- **Response caching** — exact-match (FNV-1a) and semantic similarity (cosine via embeddings) with Redis backend
+- **Routing explainability** — `x-vllm-router-*` response headers showing worker, method, policy, cache status
+- **Pre-routing hooks** — HTTP callouts for safety, PII, and custom validation before routing
+- **Model aliasing and fallback** — rewrite model names, wildcard patterns, fallback chains
+- **Decision export and replay** — JSONL export of routing decisions, replay against different configs
+- **Response caching** — exact-match and semantic similarity with Redis backend
 - **Semantic cluster routing** — route requests by prompt content to specialized worker groups
-- **Admin API** — graceful drain, hot config reload, per-routing Prometheus metrics
+- **OpenTelemetry tracing** — opt-in OTLP distributed tracing with 7 stable span contracts
+- **Admin API** — config inspection, stats, decisions, graceful drain, hot config reload
 - Pre-built releases and Docker images on every tagged version
 
-Written in Rust. Built on top of the upstream vLLM router foundation.
+Written in Rust. Built on top of the upstream vLLM router foundation. Currently at v0.7.2.
 
 📄 **License:** Apache-2.0
 🐳 **Docker:** `barrahome/vllm-router:latest`
