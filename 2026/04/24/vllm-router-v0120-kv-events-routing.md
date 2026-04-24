@@ -221,4 +221,4 @@ The router is at v0.12.0 with 608 tests, ~1300 lines of new event-driven routing
 - [CHANGELOG.md](https://github.com/bet0x/vllm-router/blob/main/CHANGELOG.md) — detailed release history
 - [docs/kv-events-routing.md](https://github.com/bet0x/vllm-router/blob/main/docs/kv-events-routing.md) — kv_aware reference
 - [Previous: v0.8.0 prompt cache and dashboard](/2026/03/22/vllm-router-v080-prompt-cache-and-observability.md)
-- [vLLM KV events config](https://docs.vllm.ai/en/latest/configuration/server_args.html) — `--kv-events-config` flag
+- [vLLM KV events config](https://docs.vllm.ai/en/latest/cli/serve/?h=kv+events+config#-kv-events-config) — `--kv-events-config` flag
