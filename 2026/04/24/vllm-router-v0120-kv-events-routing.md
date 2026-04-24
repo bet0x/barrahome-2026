@@ -159,6 +159,23 @@ The interesting cell is the third row. `cache_aware` infers from request flow, s
 
 ---
 
+## LMCache as a Publisher
+
+`kv_aware` was designed against vLLM's native KV event stream, but [LMCache also publishes the same events](https://docs.lmcache.ai/production/kv_cache_events.html) through vLLM/SGLang's ZMQ infrastructure. Same `BlockStored` payload (`block_hashes`, `parent_block_hash`, `token_ids`, `block_size`, `lora_id`), same transport, same `--kv-events-config` flag — plus an LMCache-side toggle:
+
+```yaml
+enable_kv_events: true
+pre_caching_hash_algorithm: sha256_cbor_64bit
+```
+
+The router doesn't need to care which side produced the event. Because the index updater **re-hashes from `token_ids`** with its own FNV-1a, both publishers land in the same hash space regardless of what `pre_caching_hash_algorithm` LMCache chose. So `kv_aware` works with vLLM-only deployments *and* with LMCache-augmented deployments out of the box.
+
+There's one honest caveat. LMCache adds a `medium` field to the `BlockStored` payload — `GPU`, `CPU`, or `disk` — because it offloads cold blocks to host memory and spills to local NVMe. `kv_aware` v0.12.0 ignores that field and treats every cached block as equivalent. In practice this means: for a deployment running LMCache offload, the router will correctly identify which worker has the most cached prefix, but it will overestimate the wall-clock benefit when the prefix lives on CPU or disk rather than GPU HBM. The routing decision is still better than the alternatives — it just isn't as good as it could be. Medium-aware scoring is the next step (see below).
+
+The other LMCache deployment note: when running multi-worker, **use a non-default hash seed per worker** to avoid duplicate event publication. The router's index dedupes `(block_hash, worker)` pairs, so duplicate events are harmless functionally — but a shared seed across workers can cause hash collisions across distinct content, which is a real routing bug. One seed per worker, set via vLLM's `--kv-events-config`, fixes it.
+
+---
+
 ## Rendezvous Hashing: A Better `consistent_hash`
 
 The other notable v0.12.0 policy is `rendezvous_hash` — Highest Random Weight (HRW) hashing. Same session-affinity contract as `consistent_hash` (same headers, same fallback order: `x-semantic-cluster-id` → `x-session-id` → `x-user-id` → body fields → body hash), different math:
@@ -207,6 +224,7 @@ What `kv_aware` adds is the highest-precision answer to the routing question wit
 
 ## What's Next
 
+- **Medium-aware scoring (v0.13).** Parse the `medium` field from `BlockStored` events (`GPU` / `CPU` / `disk`), propagate it into `KVBlockIndex` per-worker entries, and weight matched blocks in `PrefixScorer` accordingly — GPU at full credit, CPU at a configurable multiplier, disk near zero. This is the single biggest gap exposed by the LMCache integration and is a concrete next implementation, not a hypothetical.
 - **Cross-instance KV index sharing.** Today every router instance maintains its own `KVBlockIndex` from its own ZMQ subscriptions. For multi-instance deployments behind a load balancer, sharing the index (or sharing event consumption) would let all instances agree on prefix→worker mappings without each one ingesting the same event stream N times.
 - **`pd_uncached_token_threshold` activation.** The threshold is plumbed through but currently reserved. The intent: if a request's uncached tail is small enough, skip prefill disaggregation entirely and run the whole thing on the decode worker. The router knows the uncached count from the score result; it just needs the routing path that acts on it.
 - **Valkey migration.** Still on the list. Still pending more validation under KV cache workloads.
@@ -222,3 +240,4 @@ The router is at v0.12.0 with 608 tests, ~1300 lines of new event-driven routing
 - [docs/kv-events-routing.md](https://github.com/bet0x/vllm-router/blob/main/docs/kv-events-routing.md) — kv_aware reference
 - [Previous: v0.8.0 prompt cache and dashboard](/2026/03/22/vllm-router-v080-prompt-cache-and-observability.md)
 - [vLLM KV events config](https://docs.vllm.ai/en/latest/cli/serve/?h=kv+events+config#-kv-events-config) — `--kv-events-config` flag
+- [LMCache KV cache events](https://docs.lmcache.ai/production/kv_cache_events.html) — same event payload, plus the `medium` field for offload tier
