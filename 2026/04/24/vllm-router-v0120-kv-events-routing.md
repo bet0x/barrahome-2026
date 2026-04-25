@@ -6,6 +6,10 @@
 
 ---
 
+> **Update (2026-04-24):** v0.13.0 ships medium-aware scoring — the gap flagged in the [LMCache section](#lmcache-as-a-publisher) and the [What's Next](#whats-next) list below is now closed. See the [follow-up post](/2026/04/24/vllm-router-v0130-medium-aware-scoring.md).
+
+---
+
 A month after the [v0.8.0 article](/2026/03/22/vllm-router-v080-prompt-cache-and-observability.md), the router has shipped four more releases. The headline of v0.12.0 is a new routing policy — `kv_aware` — that stops guessing what's cached and starts knowing.
 
 This is the fifth article in the series. Earlier ones covered the [initial fork features](/2026/03/05/vllm-router-fork-production-features.md), [LMCache-aware routing](/2026/03/06/vllm-router-lmcache-aware-routing.md), the [enterprise routing philosophy](/2026/03/20/vllm-router-road-to-enterprise-routing.md), and [v0.8.0's prompt cache and dashboard](/2026/03/22/vllm-router-v080-prompt-cache-and-observability.md).
