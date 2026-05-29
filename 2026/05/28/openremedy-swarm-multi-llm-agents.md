@@ -2,7 +2,7 @@
 
 **Published on:** 2026/05/28
 
-**Tags:** openremedy, agents, llm, swarm, sre, linux, automation, security
+**Tags:** openremedy, agents, llm, swarm, sre, linux, automation, security, ansible
 
 ---
 
@@ -80,6 +80,8 @@ An agent that can run arbitrary shell on your production box is a remote code ex
 OpenRemedy's agents don't get a shell. They get **tools** — a bounded, typed surface. Read-only diagnostics are exposed as a fixed vocabulary of verbs (inspect a container, check a service, tail a log, list volumes), each with its arguments validated against an allow-list and quoted before anything touches a host. An argument that carries shell metacharacters doesn't get cleverly escaped and run — it gets *rejected* and handed back to the agent as data. The agent can ask for information in a hundred ways, but it cannot turn a log-path argument into a command.
 
 Remediation is even more constrained. Agents don't write scripts; they **propose recipes** from a curated catalogue — vetted, reviewable units of change that an operator can read, modify, or revoke. The agent's job is to pick the right recipe and the right parameters, not to invent the fix. That distinction is the difference between "the agent recommended restarting the service" and "the agent decided to prune all stopped containers," and yes, the second one is a real story from early testing, and yes, it's exactly why the catalogue is curated now.
+
+And those recipes are **Ansible playbooks**, which is a deliberate choice, not a default. The wheel is already invented. There is a colossal, battle-tested ecosystem for "make this change to this Linux host safely and idempotently" — modules for services, packages, files, containers, firewalls, written and hardened over a decade by people who do this for a living. Choosing to have an LLM generate fresh shell to do the same thing would be ignoring all of that to reinvent, badly, what already works. A model's knowledge of how to restart a service correctly is a lossy snapshot of documentation; an Ansible module *is* the maintained, idempotent, dry-run-capable implementation. The ecosystem will always be bigger, more correct, and more current than anything a single model carries in its weights — so I lean on it. The LLM decides *what* and *whether*. Ansible decides *how*, and it's been deciding *how* for far longer than LLMs have existed. Idempotency, check-mode dry runs, and a known failure surface come for free; I'd be foolish to throw that away for the novelty of generated scripts.
 
 Tool output gets scrubbed before it's ever persisted, too — if an application on a host prints a credential to stdout and a diagnostic captures it, that secret is redacted before it lands in a transcript or a timeline. The boundary isn't just "what the agent can do," it's "what the agent's eyes leave behind."
 
