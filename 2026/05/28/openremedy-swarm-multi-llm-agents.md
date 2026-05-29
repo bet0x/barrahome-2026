@@ -12,6 +12,16 @@ I'm going to stay above the implementation. There's a recipe I'm not going to ha
 
 ---
 
+## 18 months in the kitchen
+
+This didn't start as a platform. It started about 18 months ago as a pile of tool-calling experiments in a Gradio app, back when "reasoning in LLMs" was still more of a conjecture than a product category. I was wiring models to functions by hand — let the model call a tool, look at what came back, decide on the next call — just to find out whether a model could actually *drive* a sequence of real actions instead of merely describing them in prose.
+
+Most of those early versions didn't work. The model would loop, or hallucinate a tool that didn't exist, or confidently run the wrong thing. But every so often it worked — and when it did, it worked on exactly the kind of problem that fills an SRE's night shift: repetitive, observable, already documented in a runbook nobody enjoys following at 03:00. That was the hook. Not "AI is magic," but "this specific, boring, dangerous slice of operations is finally automatable if you build enough structure around the model."
+
+Eighteen months later, almost all of the work has been that structure — the swarm, the tools, the guardrails below. The model got dramatically better on its own while I wasn't looking; reasoning went from a research demo to a checkbox. The part that didn't come for free, the part I've been grinding on month after month, is everything that makes a model safe to point at a production fleet. The intelligence was the easy part. The boundaries are the product. The rest of this post is how those boundaries are built.
+
+---
+
 ## One agent is a liability. A swarm is a system.
 
 The naive version of "AI fixes your servers" is a single agent with shell access and a clever prompt. I built that first. It works in a demo and terrifies you in production, because a single agent has a single point of judgment, a single failure mode, and a single bill that scales linearly with how careful you make its reasoning.
@@ -125,7 +135,7 @@ And all of it is auditable end-to-end. Who proposed, which agent, which model, w
 
 ## Security isn't a milestone — it's a monthly tax
 
-OpenRemedy has been cooking for about 18 months. I don't say that to brag about persistence; I say it because security in a system that can touch production is not a feature you ship once. It's a tax you pay every month, and the bill is always a little different.
+Security in a system that can touch production is not a feature you ship once. It's a tax you pay every month, and the bill is always a little different.
 
 The guardrails above are the *authorisation* story — who's allowed to do what. But authorisation assumes the agent can only act through the doors you built. The other half of the work is making sure there are no windows. And every month, testing the thing against itself, I find another window I have to close.
 
@@ -135,7 +145,7 @@ I'll give the shape of a few without the recipe:
 - **Secrets leak through the side door.** An agent's transcript is gold for debugging and gold for an attacker. If an application on a host prints a password to its own logs and a diagnostic captures it, that secret would quietly end up in a stored transcript. So tool output gets scrubbed for high-confidence secrets before anything is persisted — conservatively, biased toward missing an exotic format rather than redacting a benign log line and ruining a diagnosis.
 - **Scale itself is a security property.** This month's tax was hardening the platform to run hundreds of concurrent incidents without a hung connection, a starved pool, or a stalled model freezing the whole swarm. None of that is glamorous and all of it is safety: a platform that falls over under load is a platform that fails *open* at the worst possible moment.
 
-That's what "maturing month over month" actually looks like from the inside. Not a roadmap of features — a slow accretion of closed windows, each one a specific way I watched the previous version almost go wrong. Eighteen months in, the interesting work isn't making the agents smarter. It's making the system around them harder to fool, harder to break, and honest about what it did. The intelligence was the easy part. The boundaries are the product.
+That's what "maturing month over month" actually looks like from the inside. Not a roadmap of features — a slow accretion of closed windows, each one a specific way I watched the previous version almost go wrong. The interesting work was never making the agents smarter; it's making the system around them harder to fool, harder to break, and honest about what it did.
 
 ---
 
