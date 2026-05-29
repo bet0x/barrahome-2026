@@ -99,7 +99,7 @@ Without giving away the exact thresholds, the shape is this:
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Two-stage approval gate — every ambiguous outcome escalates</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-flowchart TD
+flowchart LR
     P[Agent proposes a recipe] --> S1{Stage 1<br/>trust x risk x mode}
     S1 -->|not permitted| HUMAN[Escalate to human]
     S1 -->|permitted| S2{Stage 2<br/>safety classifier}
