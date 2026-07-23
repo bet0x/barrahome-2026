@@ -127,10 +127,17 @@
                 if (/^\/\d{4}\/\d{2}\/\d{2}\//.test(path)) {
                     var contentEl = document.querySelector(".content");
                     if (contentEl) {
-                        var commentsDiv = document.createElement("div");
-                        commentsDiv.id = "remark42";
-                        commentsDiv.style.marginTop = "2rem";
-                        contentEl.appendChild(commentsDiv);
+                        var commentsWindow = document.createElement("div");
+                        commentsWindow.className = "cde-window";
+                        commentsWindow.style.marginTop = "2rem";
+                        commentsWindow.innerHTML =
+                            '<div class="cde-window-title">' +
+                                '<div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div>' +
+                                "<span>Comments</span>" +
+                                '<div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div>' +
+                            "</div>" +
+                            '<div class="cde-window-body cde-window-body-light"><div id="remark42"></div></div>';
+                        contentEl.appendChild(commentsWindow);
 
                         window.remark_config = {
                             host: "https://remark42.barrahome.org",

@@ -428,6 +428,16 @@ body {
     line-height: 1.6;
 }
 
+.cde-window-body.cde-window-body-light {
+    background: #ffffff;
+    color: #222222;
+    border-top: 3px solid #8f939e;
+    border-left: 3px solid #8f939e;
+    border-right: 3px solid #dcdfe6;
+    border-bottom: 3px solid #dcdfe6;
+    padding: 0.5rem;
+}
+
 .cde-window-body h3 {
     color: #f0d080;
     font-size: 13px;
