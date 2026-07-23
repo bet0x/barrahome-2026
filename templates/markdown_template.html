@@ -122,6 +122,27 @@
                 });
 
 
+                // Remark42 comments — only on dated blog posts (/YYYY/MM/DD/slug.md),
+                // never on index/cv/projects/contact.
+                if (/^\/\d{4}\/\d{2}\/\d{2}\//.test(path)) {
+                    var contentEl = document.querySelector(".content");
+                    if (contentEl) {
+                        var commentsDiv = document.createElement("div");
+                        commentsDiv.id = "remark42";
+                        commentsDiv.style.marginTop = "2rem";
+                        contentEl.appendChild(commentsDiv);
+
+                        window.remark_config = {
+                            host: "https://remark42.barrahome.org",
+                            site_id: "barrahome",
+                        };
+                        var remarkScript = document.createElement("script");
+                        remarkScript.src = window.remark_config.host + "/web/embed.js";
+                        remarkScript.defer = true;
+                        document.head.appendChild(remarkScript);
+                    }
+                }
+
                 // global tags sidebar from tags.js
                 var tagsSection = document.getElementById("tags-section");
                 var tagsPanel = document.getElementById("tags-panel");
