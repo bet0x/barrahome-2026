@@ -73,6 +73,8 @@ The compiled module will be at `objs/ngx_markdown_filter_module.so`.
 
 ### 5. Install the module
 
+First time (module not loaded by any running nginx process yet), a plain copy is fine:
+
 ```bash
 cp objs/ngx_markdown_filter_module.so /usr/lib/nginx/modules/
 
@@ -86,6 +88,25 @@ ln -s /etc/nginx/modules-available/mod-markdown.conf \
 
 nginx -t && systemctl reload nginx
 ```
+
+**Upgrading an already-loaded module is different, and this is the part that bit me.** `cp` onto an existing file overwrites it in place — same inode, new bytes underneath a shared library the running master process already has memory-mapped. Shared libraries are lazily paged in, so you end up with some code pages from the old build still resident and others getting faulted in fresh from the new build the moment something touches them. Same process, two different compiled layouts, sharing one address space. Every worker that hits the module segfaults, on a loop.
+
+`systemctl reload` won't save you either — nginx's dynamic module loader caches by path, so a reload doesn't make it re-`dlopen` a module it already has open.
+
+The safe way:
+
+```bash
+# write to a temp file, then atomically rename it into place —
+# anyone with the old file already open keeps a consistent mapping
+install -m 755 objs/ngx_markdown_filter_module.so \
+  /usr/lib/nginx/modules/ngx_markdown_filter_module.so.new
+mv -f /usr/lib/nginx/modules/ngx_markdown_filter_module.so.new \
+  /usr/lib/nginx/modules/ngx_markdown_filter_module.so
+
+nginx -t && systemctl restart nginx   # restart, not reload
+```
+
+A full restart, not a reload, is the point — it gets you a fresh master process that opens the file from disk with nothing stale mapped.
 
 ## The nginx config
 
@@ -112,16 +133,22 @@ location ~ \.md$ {
 
 ## The template
 
-The template is plain HTML with a `{{content}}` placeholder. The module splits the file at `{{` and `}}`, uses everything before as header and everything after as footer, then inserts the converted HTML in between.
+The template is plain HTML with a `{{content}}` placeholder. The module splits the file at `{{content}}`, uses everything before as header and everything after as footer, then inserts the converted HTML in between.
 
-A minimal template:
+Two more placeholders were added later, useful for anything beyond a single static page:
+
+- `{{title}}` — the first `<h1>` in the rendered output, falling back to the URL's filename if there's no heading.
+- `{{description}}` — the first real paragraph, falling back to an empty string. "Real" skips any paragraph that's just a bold label ending in a colon (`**Published on:**`, `**Tags:**`, or your own convention), so post metadata lines don't end up as the description.
+
+A minimal template using all three:
 
 ```html
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>My Site</title>
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -132,7 +159,7 @@ A minimal template:
 </html>
 ```
 
-You can put anything in the template: navigation, sidebars, scripts. The only rule is one `{{content}}` placeholder.
+You can put anything in the template: navigation, sidebars, scripts. `{{content}}` is required; `{{title}}` and `{{description}}` are optional and can appear anywhere, including more than once.
 
 ## Using index.md as your homepage
 
@@ -162,5 +189,7 @@ location ~ \.md$ {
 - **Content-Type**: the module sets `text/html;charset=utf-8` automatically.
 
 - **Debian upgrades**: when nginx gets a package update, the module may need recompilation if the ABI changed. Keep your nginx source tree around.
+
+- **Escaping in `{{title}}`/`{{description}}`**: text pulled from the rendered HTML (the `<h1>`, the first paragraph) is already HTML-escaped by cmark — don't escape it again in anything downstream. The one place that does need escaping is the URL-filename fallback for `{{title}}`, since that comes from the unescaped request path.
 
 ---
