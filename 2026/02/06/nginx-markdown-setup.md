@@ -52,18 +52,19 @@ The key is using `--with-compat` so the module matches your existing nginx binar
 nginx -V 2>&1 | grep 'configure arguments'
 ```
 
-Then build:
+Then build. Don't drop the flags straight into `$(...)` — the dump contains quoted, space-separated values like `--with-cc-opt='-g -O2 ...'`, and unquoted command substitution word-splits the result without honoring those embedded quotes, so `configure` chokes on a bare `-O2`. Assemble the full command as one string first, then `eval` it once so the quotes get re-parsed correctly:
 
 ```bash
 cd nginx-1.26.3
 
 # with cmark-gfm support (recommended)
-./configure $(nginx -V 2>&1 | grep -oP 'configure arguments: \K.*') \
-  --add-dynamic-module=../ngx_markdown_filter_module \
-  --with-cc-opt="-DWITH_CMARK_GFM $(nginx -V 2>&1 | grep -oP -- "--with-cc-opt='\K[^']*")"
+ORIG_ARGS=$(nginx -V 2>&1 | grep -oP 'configure arguments: \K.*')
+ORIG_CC_OPT=$(nginx -V 2>&1 | grep -oP -- "--with-cc-opt='\K[^']*")
+CMD="./configure $ORIG_ARGS --add-dynamic-module=../ngx_markdown_filter_module --with-cc-opt='-DWITH_CMARK_GFM $ORIG_CC_OPT'"
+eval "$CMD"
 
 # or without GFM, plain cmark only
-./configure $(nginx -V 2>&1 | grep -oP 'configure arguments: \K.*') \
+eval ./configure $(nginx -V 2>&1 | grep -oP 'configure arguments: \K.*') \
   --add-dynamic-module=../ngx_markdown_filter_module
 
 make modules
