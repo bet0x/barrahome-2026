@@ -85,6 +85,14 @@
         // message instead of one row per token.
         var streamingRow = null;
 
+        // Set once a "done" or "error" frame lands, so a stream that just
+        // closes without either doesn't leave the status bar stuck.
+        var terminated = false;
+
+        // A single legitimate frame is small; if the backend never sends a
+        // blank-line terminator the buffer would otherwise grow forever.
+        var MAX_BUFFER = 64 * 1024;
+
         function appendDelta(text) {
             if (!streamingRow) {
                 streamingRow = document.createElement("div");
@@ -111,11 +119,14 @@
             }
             if (name === "error") {
                 streamingRow = null;
+                terminated = true;
+                status.textContent = "Ready.";
                 addLog("system", data.message || "The agent hit an error.");
                 return;
             }
             if (name === "done") {
                 streamingRow = null;
+                terminated = true;
                 var left = data.turns_left;
                 status.textContent =
                     typeof left === "number"
@@ -159,6 +170,7 @@
             addLog("user", question);
             promptInput.value = "";
             streamingRow = null;
+            terminated = false;
             busy = true;
             sendBtn.disabled = true;
             status.textContent = "Thinking...";
@@ -186,11 +198,25 @@
                     function pump() {
                         return reader.read().then(function (result) {
                             if (result.done) {
+                                // The backend always ends with "done" or
+                                // "error"; if the connection just closed
+                                // without either, don't leave the status
+                                // bar stuck on "Thinking..."/"Reading: ...".
+                                if (!terminated) {
+                                    streamingRow = null;
+                                    status.textContent = "Ready.";
+                                }
                                 return;
                             }
                             buffer += decoder.decode(result.value, {
                                 stream: true,
                             });
+                            if (buffer.length > MAX_BUFFER) {
+                                reader.cancel();
+                                throw new Error(
+                                    "stream exceeded the buffer limit without a terminator",
+                                );
+                            }
                             buffer = consumeFrames(buffer);
                             return pump();
                         });
