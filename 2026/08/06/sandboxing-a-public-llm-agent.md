@@ -28,36 +28,41 @@ The design follows from those four, and the ordering matters, because the cheape
 
 A Go binary with two subcommands. `supervise` is the container entrypoint and runs as PID 1. It builds a confinement policy and launches `serve` as a child under that policy. `serve` is the HTTP server that talks to the model and executes tools.
 
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Request path: PID 1 builds the policy, the child runs under it</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
 <div class="mermaid">
-
 flowchart TB
-    visitor["Visitor presses the backtick key"]
-    edge["TLS termination and reverse proxy<br/>rate limits, real client IP"]
-
-    subgraph container["Container"]
+    visitor[Visitor presses the backtick key]
+    edge[TLS termination and reverse proxy<br/>rate limits, real client IP]
+    subgraph container[Container]
         direction TB
-        pid1["<b>PID 1: supervise</b><br/>checks the Landlock ABI, builds the policy,<br/>execs the worker. Exits non-zero if the<br/>policy will not apply."]
-        subgraph confined["Landlock + seccomp"]
+        pid1[PID 1: supervise<br/>checks the Landlock ABI, builds the policy,<br/>execs the worker. Exits non-zero if the<br/>policy will not apply.]
+        subgraph confined[Landlock + seccomp]
             direction TB
-            worker["<b>serve</b>: HTTP/SSE server"]
-            limits["per-IP quota, global concurrency cap"]
-            session["session checkout: reserves a turn,<br/>one request per session at a time"]
-            loop["agent loop, bounded tool rounds"]
-            tools["three read-only file tools,<br/>native calls, no subprocess"]
+            worker[serve: HTTP/SSE server]
+            limits[per-IP quota<br/>global concurrency cap]
+            session[session checkout: reserves a turn<br/>one request per session at a time]
+            loop[agent loop, bounded tool rounds]
+            tools[three read-only file tools<br/>native calls, no subprocess]
             worker --> limits --> session --> loop
             loop <--> tools
         end
     end
-
-    ws[("curated content<br/>read-only mount")]
-    api["the model API<br/>the only permitted egress"]
-
+    ws[(curated content<br/>read-only mount)]
+    api[the model API<br/>the only permitted egress]
     visitor --> edge --> worker
-    pid1 -.->|"policy applies to the child"| confined
+    pid1 -.->|policy applies to the child| confined
     ws --> tools
     loop <--> api
-    worker -.->|"SSE: text, tool_start, tool_result, done"| visitor
-
+    worker -.->|SSE: text, tool_start, tool_result, done| visitor
+    style pid1 fill:#3a2f1e,color:#fff
+    style worker fill:#1e3a2f,color:#fff
+    style tools fill:#1e3a2f,color:#fff
+    style api fill:#3a1e1e,color:#fff
+    style ws fill:#2f2f3a,color:#fff
+</div>
+</div>
 </div>
 
 The confinement comes from [sandlock](https://github.com/multikernel/sandlock), which uses Landlock for filesystem rules and seccomp for network and syscall policy. No namespaces, no root. I picked it over bubblewrap for one reason: it can express "this process may reach exactly one hostname on exactly one port," and bubblewrap's model is all or nothing on network.
@@ -179,39 +184,33 @@ A question that reads a full post runs roughly 9,000 input tokens against 850 ou
 
 Each tool round is a full extra API round-trip, which is also where the latency lives:
 
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>One question, two API round-trips: where the fifteen seconds go</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
 <div class="mermaid">
-
 sequenceDiagram
-    autonumber
     participant B as Browser
     participant S as Agent
     participant T as Tools
     participant M as Model API
-
     B->>S: POST, one question
     S->>S: origin check, per-IP quota,<br/>session checkout reserves a turn
     S-->>B: 200, event stream opens
-
-    rect rgb(60, 50, 70)
-        note over S,M: round 1 costs a full round-trip
-        S->>M: conversation + tool schemas
-        M-->>S: "call search_content"
-        S-->>B: event: tool_start
-        S->>T: native file read, milliseconds
-        T-->>S: matches
-        S-->>B: event: tool_result
-    end
-
-    rect rgb(50, 60, 70)
-        note over S,M: round 2 resends everything, plus the file
-        S->>M: conversation + tool result
-        M-->>S: token deltas
-        S-->>B: event: text (many)
-    end
-
+    Note over S,M: Round 1 costs a full round-trip
+    S->>M: conversation + tool schemas
+    M-->>S: call search_content
+    S-->>B: event: tool_start
+    S->>T: native file read, milliseconds
+    T-->>S: matches
+    S-->>B: event: tool_result
+    Note over S,M: Round 2 resends everything, plus the file
+    S->>M: conversation + tool result
+    M-->>S: token deltas
+    S-->>B: event: text (many)
     S->>S: commit history, release the session
     S-->>B: event: done
-
+</div>
+</div>
 </div>
 
 Two rounds, two round-trips. The tool execution itself is milliseconds. The waiting is the API answering twice, with a bigger prompt the second time. A tool-calling answer takes about fifteen seconds end to end and almost none of that is token generation, since inside a burst the tokens arrive with no measurable gap. Turning the model's thinking mode off and capping the tool rounds at three cut the worst case meaningfully. What you cannot do is make a tool call free, which is worth knowing before you design a chatty agent.
