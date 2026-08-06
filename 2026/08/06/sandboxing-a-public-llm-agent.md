@@ -32,21 +32,17 @@ A Go binary with two subcommands. `supervise` is the container entrypoint and ru
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Request path: PID 1 builds the policy, the child runs under it</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-flowchart TB
-    visitor[Visitor presses the backtick key]
-    edge[TLS termination and reverse proxy<br/>rate limits, real client IP]
+flowchart LR
+    visitor[Visitor<br/>backtick key]
+    edge[TLS + reverse proxy<br/>rate limits, real client IP]
     subgraph container[Container]
-        direction TB
-        pid1[PID 1: supervise<br/>checks the Landlock ABI, builds the policy,<br/>execs the worker. Exits non-zero if the<br/>policy will not apply.]
+        direction LR
+        pid1[PID 1: supervise<br/>checks the Landlock ABI,<br/>builds the policy, execs the worker.<br/>Exits non-zero if it will not apply.]
         subgraph confined[Landlock + seccomp]
-            direction TB
-            worker[serve: HTTP/SSE server]
-            limits[per-IP quota<br/>global concurrency cap]
-            session[session checkout: reserves a turn<br/>one request per session at a time]
-            loop[agent loop, bounded tool rounds]
+            direction LR
+            worker[serve<br/>origin check, per-IP quota,<br/>session checkout, agent loop]
             tools[three read-only file tools<br/>native calls, no subprocess]
-            worker --> limits --> session --> loop
-            loop <--> tools
+            worker <--> tools
         end
     end
     ws[(curated content<br/>read-only mount)]
@@ -54,8 +50,8 @@ flowchart TB
     visitor --> edge --> worker
     pid1 -.->|policy applies to the child| confined
     ws --> tools
-    loop <--> api
-    worker -.->|SSE: text, tool_start, tool_result, done| visitor
+    worker <--> api
+    worker -.->|SSE deltas| visitor
     style pid1 fill:#3a2f1e,color:#fff
     style worker fill:#1e3a2f,color:#fff
     style tools fill:#1e3a2f,color:#fff
