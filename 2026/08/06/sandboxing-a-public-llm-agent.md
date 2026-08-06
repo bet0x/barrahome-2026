@@ -162,7 +162,13 @@ Which is the right way round, because the sandbox is the newest and least battle
 - Path validation is independent of Landlock and stays strict on its own terms.
 - The tool surface has nothing an escape primitive could use.
 
-A sandlock failure costs me defence in depth rather than the keys. Add a tool that executes code and every sentence in this section stops being true.
+A sandlock failure costs me defence in depth rather than the keys.
+
+Two of those properties are the ones that would break if I ever added a tool that runs commands: injected text would gain a way to reach the network, and the tool surface would stop being something an escape primitive has nothing to work with. The content directory and the missing home directory would still hold. That's worth being precise about, because "don't add code execution" is not a plan, and I can already think of reasons I'd want it.
+
+If I do, the answer isn't a fourth tool on this agent. It's a second process: the agent keeps the API key and the one permitted egress but cannot execute anything, and a separate confined executor can execute but holds no key and has no network at all. That's a privilege split rather than another layer of the same thing. It would talk over a Unix domain socket rather than TCP, and for a specific reason: a socket on TCP would mean widening `NetAllow` to include my own executor, which puts a hole in the single rule that makes the current design defensible. A Unix socket never touches the network stack, so it stays governed by the filesystem rules I already have. Spawning it per call and letting it die is also where sandlock's 5ms startup stops being a number I don't care about.
+
+Whoever spawns that executor has to be the supervisor, not the agent, or the agent needs exec rights and I'm back where I started. And if the ephemeral thing were a container rather than a process, the agent would need the Docker socket, which is root on the host. That would be trading the whole machine for some isolation.
 
 ## Failing closed, and proving it
 
@@ -229,7 +235,7 @@ And the honest one: a determined distributed effort can still churn other visito
 
 Every serious problem in this project was in code I wrote and reviewed myself, and every one was found by having something else look at it with fresh eyes and a mandate to try breaking it. My own tests passed. The header forgery, the turn cap race, the symlink escape, the path leak, the fail-open default: all of them survived my review and died in someone else's.
 
-The sandboxing was the fun part and, in the end, the least important part. What makes this safe is the tool surface, and the tool surface is a decision you make in ten minutes at the start and then spend the whole project defending. Every time it's tempting to add a tool that runs a command, the argument in this post collapses.
+The sandboxing was the fun part and, in the end, the least important part. What makes this safe is the tool surface, and the tool surface is a decision you make in ten minutes at the start and then spend the whole project defending. The version of that decision I'd defend hardest is the one above: adding command execution isn't adding a tool, it's changing the architecture. The day I want it, the work is a second process with a different set of privileges, not a fourth entry in a list.
 
 The code is at [barrahome-2026-agent](https://github.com/bet0x/barrahome-2026-agent) if you want to look at it. Go press the backtick key.
 
