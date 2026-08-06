@@ -1,3 +1,6 @@
 
 # Superpowers/SDD scratch: ledgers, briefs, reports. Never commit.
 .superpowers/
+
+# Design docs are local-only, not published.
+docs/
