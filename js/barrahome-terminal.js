@@ -35,7 +35,10 @@
             ".barrahome-terminal-log th,.barrahome-terminal-log td{border:1px solid #55606c;padding:3px 6px;text-align:left;font-size:12px;vertical-align:top;}" +
             ".barrahome-terminal-log th{background:#455363;color:#f4f4f4;}" +
             ".barrahome-terminal-log a{color:#7ec8e3;text-decoration:underline;}" +
-            ".barrahome-terminal-log a:hover{color:#b24d7a;}";
+            ".barrahome-terminal-log a:hover{color:#b24d7a;}" +
+            ".barrahome-terminal-chip{display:inline-block;margin:0 2px;padding:1px 8px;background:#b24d7a;color:#fff;font-family:monospace;font-size:12px;cursor:pointer;border-top:2px solid #d888a8;border-left:2px solid #d888a8;border-right:2px solid #6e2f4c;border-bottom:2px solid #6e2f4c;}" +
+            ".barrahome-terminal-chip:hover:not(:disabled){background:#c25f8c;}" +
+            ".barrahome-terminal-chip:disabled,.barrahome-terminal-chip.used{cursor:default;background:#6e5560;color:#cbb7c0;border-top:2px solid #5a4550;border-left:2px solid #5a4550;border-right:2px solid #8a6d78;border-bottom:2px solid #8a6d78;}";
         document.head.appendChild(style);
 
         var win = document.createElement("section");
@@ -121,15 +124,50 @@
             });
         }
 
-        // Inline markdown: inline code, links, then bold/italic. Operates
-        // on already-escaped text and only ever emits tags it constructs
-        // itself around that text.
+        // Workspace-relative post references: YYYY/MM/DD/slug.md, with an
+        // optional leading slash. Matched on the path shape only (never on
+        // titles, which are unreliable and easy to false-positive on). The
+        // allowed character class deliberately excludes quotes and angle
+        // brackets, so nothing this regex can capture is able to break out
+        // of the attribute the chip below places it in - a crafted string
+        // like '2026/02/01/x.md" onclick="alert(1)' simply fails to match
+        // past ".md" (the quote isn't in the slug's allowed charset), and
+        // whatever follows stays inert escaped text.
+        var POST_PATH_RE =
+            /(^|[^\w/])(\/?\d{4}\/\d{2}\/\d{2}\/[A-Za-z0-9_.-]+\.md)(?![A-Za-z0-9_])/g;
+
+        function renderPostChip(postPath) {
+            return (
+                '<button type="button" class="barrahome-terminal-chip" data-post-path="' +
+                postPath +
+                '">' +
+                postPath +
+                "</button>"
+            );
+        }
+
+        // Turns bare post-path references into clickable chips. Called
+        // from renderInline() on already-escaped, already-code-protected
+        // text fragments (table cells, list items, paragraph text) - never
+        // as a blind pass over finished HTML, so it can't reach inside a
+        // <code>/<pre> span that was rendered elsewhere.
+        function linkifyPostPaths(text) {
+            return text.replace(POST_PATH_RE, function (m, pre, postPath) {
+                return pre + renderPostChip(postPath);
+            });
+        }
+
+        // Inline markdown: inline code, post-path chips, links, then
+        // bold/italic. Operates on already-escaped text and only ever
+        // emits tags it constructs itself around that text.
         function renderInline(text) {
             var codes = [];
             text = text.replace(/`([^`]+)`/g, function (m, c) {
                 codes.push(c);
                 return " IC" + (codes.length - 1) + " ";
             });
+
+            text = linkifyPostPaths(text);
 
             text = text.replace(
                 /\[([^\]]+)\]\(([^)\s]+)\)/g,
@@ -570,11 +608,39 @@
 
         var busy = false;
 
+        // The visitor's last typed message, used only as a cheap language
+        // signal for the prefilled "explain this post" prompt below. Not
+        // sent anywhere and not used for anything else.
+        var lastUserText = "";
+
+        // Cheap, non-NLP language guess from the visitor's own words:
+        // Spanish diacritics/punctuation win outright, a few common
+        // English stopwords are the fallback signal, and anything
+        // ambiguous (including "no message yet", e.g. a chip clicked
+        // before the visitor has typed anything) defaults to Spanish,
+        // which is right for this blog.
+        function detectLanguage(text) {
+            text = text || "";
+            if (/[ñáéíóúüÑÁÉÍÓÚÜ¿¡]/.test(text)) return "es";
+            if (/\b(the|what|how|does|explain|please|you|your)\b/i.test(text)) {
+                return "en";
+            }
+            return "es";
+        }
+
+        function buildPostPrompt(postPath) {
+            if (detectLanguage(lastUserText) === "en") {
+                return "Read " + postPath + " and explain what it's about.";
+            }
+            return "Lee " + postPath + " y explícame de qué trata.";
+        }
+
         function send() {
             if (busy) return;
             var question = promptInput.value.trim();
             if (!question) return;
 
+            lastUserText = question;
             addLog("user", question);
             promptInput.value = "";
             finalizeStreamingRow();
@@ -651,6 +717,33 @@
                 e.preventDefault();
                 send();
             }
+        });
+
+        // Post-reference chips are rendered as inert markup (see
+        // renderPostChip) with no inline handler; a single delegated
+        // listener on the log is what actually makes them clickable. A
+        // click just prefills the composer and drives the existing send()
+        // path - same turn, same busy guard, no separate protocol and no
+        // direct tool call from the client.
+        log.addEventListener("click", function (e) {
+            var target = e.target;
+            while (target && target !== log && target.tagName !== "BUTTON") {
+                target = target.parentNode;
+            }
+            if (!target || target === log) return;
+            if (!target.classList.contains("barrahome-terminal-chip")) return;
+            if (target.disabled) return;
+            if (busy) return;
+
+            var postPath = target.getAttribute("data-post-path");
+            if (!postPath) return;
+
+            target.disabled = true;
+            target.classList.add("used");
+            target.textContent = target.textContent + " ✓";
+
+            promptInput.value = buildPostPrompt(postPath);
+            send();
         });
 
         closeBtn.addEventListener("click", function () {
