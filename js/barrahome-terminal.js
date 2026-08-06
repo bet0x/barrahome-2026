@@ -136,12 +136,31 @@
         var POST_PATH_RE =
             /(^|[^\w/])(\/?\d{4}\/\d{2}\/\d{2}\/[A-Za-z0-9_.-]+\.md)(?![A-Za-z0-9_])/g;
 
+        // Anchored variant used only to test a code span's full (trimmed)
+        // content: a code span that IS a post path, with nothing else in
+        // it, is a reference formatted as code rather than a code sample -
+        // that narrow case still becomes a chip. A span merely containing
+        // a path among other text ("cat 2026/02/01/x.md") is a real code
+        // sample and stays literal.
+        var POST_PATH_EXACT_RE =
+            /^\/?\d{4}\/\d{2}\/\d{2}\/[A-Za-z0-9_.-]+\.md$/;
+
         function renderPostChip(postPath) {
+            // The path resolver on the backend only accepts workspace-
+            // relative paths and rejects a leading slash outright. The
+            // detection regexes above deliberately match an optional
+            // leading slash (the model writes paths both ways), but the
+            // form that reaches the chip's attribute and, later, the
+            // generated message must always be the relative one - this is
+            // the single point every chip is built through, so
+            // normalizing here covers both call sites.
+            var normalized =
+                postPath.charAt(0) === "/" ? postPath.slice(1) : postPath;
             return (
                 '<button type="button" class="barrahome-terminal-chip" data-post-path="' +
-                postPath +
+                normalized +
                 '">' +
-                postPath +
+                normalized +
                 "</button>"
             );
         }
@@ -162,7 +181,13 @@
         // emits tags it constructs itself around that text.
         function renderInline(text) {
             var codes = [];
+            var pathChips = [];
             text = text.replace(/`([^`]+)`/g, function (m, c) {
+                var trimmed = c.trim();
+                if (POST_PATH_EXACT_RE.test(trimmed)) {
+                    pathChips.push(trimmed);
+                    return " PC" + (pathChips.length - 1) + " ";
+                }
                 codes.push(c);
                 return " IC" + (codes.length - 1) + " ";
             });
@@ -196,6 +221,12 @@
 
             text = text.replace(/ IC(\d+) /g, function (m, idx) {
                 return "<code>" + codes[Number(idx)] + "</code>";
+            });
+            // Restored last, same as inline code: fully protected through
+            // every transform above, so a chip's own path text can't be
+            // re-matched by linkifyPostPaths() or mangled by bold/italic.
+            text = text.replace(/ PC(\d+) /g, function (m, idx) {
+                return renderPostChip(pathChips[Number(idx)]);
             });
             return text;
         }
@@ -614,18 +645,20 @@
         var lastUserText = "";
 
         // Cheap, non-NLP language guess from the visitor's own words:
-        // Spanish diacritics/punctuation win outright, a few common
-        // English stopwords are the fallback signal, and anything
-        // ambiguous (including "no message yet", e.g. a chip clicked
-        // before the visitor has typed anything) defaults to Spanish,
-        // which is right for this blog.
+        // Spanish diacritics/punctuation or a handful of Spanish-only
+        // stopwords (words that never occur as English words, so there is
+        // no false-positive risk against English text) mean "es"; anything
+        // ambiguous - including "no message yet", e.g. a chip clicked
+        // before the visitor has typed anything - defaults to English,
+        // since the site itself (titles, cv.md, the terminal's own
+        // strings) is English-first.
         function detectLanguage(text) {
             text = text || "";
             if (/[ñáéíóúüÑÁÉÍÓÚÜ¿¡]/.test(text)) return "es";
-            if (/\b(the|what|how|does|explain|please|you|your)\b/i.test(text)) {
-                return "en";
+            if (/\b(que|como|donde|cuando|tienes|puedes|sobre|cuales)\b/i.test(text)) {
+                return "es";
             }
-            return "es";
+            return "en";
         }
 
         function buildPostPrompt(postPath) {
