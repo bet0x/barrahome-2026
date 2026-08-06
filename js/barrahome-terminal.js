@@ -32,7 +32,7 @@
 
         var toolbar = document.createElement("div");
         toolbar.className = "barrahome-terminal-toolbar";
-        toolbar.innerHTML = "<span>Mode: Dummy</span><span>Hotkey: `</span>";
+        toolbar.innerHTML = "<span>Mode: Agent</span><span>Hotkey: `</span>";
 
         var log = document.createElement("div");
         log.className = "barrahome-terminal-log";
@@ -66,12 +66,146 @@
             log.scrollTop = log.scrollHeight;
         }
 
+        var API_BASE = window.BARRAHOME_AGENT_BASE || "/ai-proxy";
+
+        function sessionId() {
+            var key = "barrahome-terminal-session";
+            var id = sessionStorage.getItem(key);
+            if (!id) {
+                id =
+                    window.crypto && window.crypto.randomUUID
+                        ? window.crypto.randomUUID()
+                        : String(Date.now()) + Math.random().toString(16).slice(2);
+                sessionStorage.setItem(key, id);
+            }
+            return id;
+        }
+
+        // Appends to the last assistant row so streamed deltas read as one
+        // message instead of one row per token.
+        var streamingRow = null;
+
+        function appendDelta(text) {
+            if (!streamingRow) {
+                streamingRow = document.createElement("div");
+                streamingRow.className = "barrahome-terminal-msg system";
+                streamingRow.textContent = "system> ";
+                log.appendChild(streamingRow);
+            }
+            streamingRow.textContent += text;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function handleEvent(name, data) {
+            if (name === "text") {
+                appendDelta(data.text || "");
+                return;
+            }
+            if (name === "tool_start") {
+                status.textContent = "Reading: " + (data.text || "");
+                return;
+            }
+            if (name === "tool_result") {
+                status.textContent = "Thinking...";
+                return;
+            }
+            if (name === "error") {
+                streamingRow = null;
+                addLog("system", data.message || "The agent hit an error.");
+                return;
+            }
+            if (name === "done") {
+                streamingRow = null;
+                var left = data.turns_left;
+                status.textContent =
+                    typeof left === "number"
+                        ? "Ready. " + left + " turns left this session."
+                        : "Ready.";
+            }
+        }
+
+        // Minimal SSE parser: frames are separated by a blank line, and we only
+        // need the "event:" and "data:" fields the backend sends.
+        function consumeFrames(buffer) {
+            var frames = buffer.split("\n\n");
+            var remainder = frames.pop();
+            frames.forEach(function (frame) {
+                var name = "message";
+                var payload = "";
+                frame.split("\n").forEach(function (line) {
+                    if (line.indexOf("event:") === 0) {
+                        name = line.slice(6).trim();
+                    } else if (line.indexOf("data:") === 0) {
+                        payload += line.slice(5).trim();
+                    }
+                });
+                if (!payload) return;
+                try {
+                    handleEvent(name, JSON.parse(payload));
+                } catch (e) {
+                    /* ignore malformed frames */
+                }
+            });
+            return remainder;
+        }
+
+        var busy = false;
+
         function send() {
+            if (busy) return;
             var question = promptInput.value.trim();
             if (!question) return;
+
             addLog("user", question);
             promptInput.value = "";
-            addLog("system", "Dummy mode enabled. No backend call configured.");
+            streamingRow = null;
+            busy = true;
+            sendBtn.disabled = true;
+            status.textContent = "Thinking...";
+
+            fetch(API_BASE + "/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    session_id: sessionId(),
+                    message: question,
+                }),
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.text().then(function (text) {
+                            throw new Error(
+                                text || "HTTP " + response.status,
+                            );
+                        });
+                    }
+                    var reader = response.body.getReader();
+                    var decoder = new TextDecoder();
+                    var buffer = "";
+
+                    function pump() {
+                        return reader.read().then(function (result) {
+                            if (result.done) {
+                                return;
+                            }
+                            buffer += decoder.decode(result.value, {
+                                stream: true,
+                            });
+                            buffer = consumeFrames(buffer);
+                            return pump();
+                        });
+                    }
+                    return pump();
+                })
+                .catch(function (err) {
+                    streamingRow = null;
+                    addLog("system", "Error: " + err.message);
+                    status.textContent = "Ready.";
+                })
+                .finally(function () {
+                    busy = false;
+                    sendBtn.disabled = false;
+                });
         }
 
         sendBtn.addEventListener("click", send);
@@ -130,7 +264,7 @@
             if (!win.classList.contains("hidden")) promptInput.focus();
         });
 
-        addLog("system", "Terminal ready. Dummy mode only.");
+        addLog("system", "Terminal ready. Ask me about this site.");
     }
 
     if (document.readyState === "loading") {
