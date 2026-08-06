@@ -264,6 +264,42 @@ Sitemap: https://barrahome.org/sitemap.xml
 EOF
 
 # ====================
+# Sync content to the agent's workspace
+# ====================
+# The terminal agent reads from its own directory, not the web root, so a new
+# post is invisible to it until it lands here. Only .md files go across: the
+# workspace is the agent's entire view of the world, and anything else in it
+# (build output, .git, dotfiles) is either noise or a leak.
+AGENT_WORKSPACE="${AGENT_WORKSPACE:-$HOME/workspace}"
+agent_synced=0
+
+if [ -d "$AGENT_WORKSPACE" ]; then
+    while IFS= read -r src; do
+        rel="${src#"$BLOG_DIR"/}"
+        dst="$AGENT_WORKSPACE/$rel"
+        mkdir -p "$(dirname "$dst")"
+        if ! cmp -s "$src" "$dst"; then
+            cp "$src" "$dst"
+            agent_synced=$((agent_synced + 1))
+        fi
+    done < <(find "$BLOG_DIR" -path '*/[0-9][0-9][0-9][0-9]/[0-9][0-9]/[0-9][0-9]/*.md' -type f)
+
+    for page in cv.md projects.md contact.md index.md; do
+        if [ -f "$BLOG_DIR/$page" ] && ! cmp -s "$BLOG_DIR/$page" "$AGENT_WORKSPACE/$page"; then
+            cp "$BLOG_DIR/$page" "$AGENT_WORKSPACE/$page"
+            agent_synced=$((agent_synced + 1))
+        fi
+    done
+
+    # No restart needed. The tools walk the workspace on every call, so a file
+    # copied in here is searchable immediately; verified with a file added to a
+    # container that had been running for an hour. Restarting would only drop
+    # the in-memory sessions of anyone mid-conversation. The agent does read its
+    # config at startup, so a restart is still the right move after changing
+    # .env, just not after adding a post.
+fi
+
+# ====================
 # Summary
 # ====================
 echo "✓ index.md generated with ${#sorted[@]} posts and ${#unique_tags[@]} tags"
@@ -271,3 +307,8 @@ echo "✓ js/tags.js generated with ${#unique_tags[@]} tags"
 echo "✓ sitemap.xml generated with $(( ${#sorted[@]} + 4 )) URLs"
 echo "✓ llm.txt generated with ${#sorted[@]} posts and ${#unique_tags[@]} tags"
 echo "✓ robots.txt generated"
+if [ -d "$AGENT_WORKSPACE" ]; then
+    echo "✓ agent workspace synced ($agent_synced file(s) changed)"
+else
+    echo "- agent workspace not present, skipped"
+fi
