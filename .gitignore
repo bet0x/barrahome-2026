@@ -4,3 +4,5 @@
 
 # Design docs are local-only, not published.
 docs/
+
+tmp/
