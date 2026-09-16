@@ -18,7 +18,7 @@ Six weeks ago I wrote about [putting an LLM agent on this blog](/2026/08/06/sand
 | `FSWritable` grants read along with write | Documented |
 | Docker's default seccomp profile blocks sandlock | Never a sandlock bug, and my advice was wrong |
 
-One caveat before the details. Everything below comes from reading the merged changes and the release notes. I have not re-run my own worker against v0.8.8 yet, so where I say something works, I mean their regression tests say so and I've read the diff.
+One note on sourcing before the details. Where I describe what a fix does internally, that's from reading the merged diff. Where I say a control now works, I've bumped my own pinned checkout to v0.8.8 and measured it against the real policy my agent runs, and I say what I measured.
 
 ## The memory limit
 
@@ -26,9 +26,11 @@ One caveat before the details. Everything below comes from reading the merged ch
 
 That diagnosis was right and incomplete. The fix skips reservations, because an anonymous mapping with `PROT_NONE` backs nothing, and Go reserves over a gigabyte of it. Then, since free reservations open a hole, `mprotect` is now judged when it grants `PROT_WRITE`, using a BPF argument filter so the expensive part only runs when the length in question would exceed the limit. Both of those I'd have recognised. The third one I would not have found: mapping `/dev/zero` private and writable is anonymous memory that the ledger never saw at all. That's charged now too.
 
-So the interesting part isn't that my report was acted on. It's that following the bug to its cause turned up two bypasses next to it, and one of them was a way to get memory the accounting couldn't see. The notes say a Go hello world runs under a 64M limit and a 300 MB Go allocation is killed under it, with regression tests in both Rust and Python.
+So the interesting part isn't that my report was acted on. It's that following the bug to its cause turned up two bypasses next to it, and one of them was a way to get memory the accounting couldn't see.
 
-I'll still let the cgroup do the measuring in my own setup, for the reason I gave in the original post: cgroups count resident set size, which is the thing I actually meant. But the setting is no longer a lie, and the comment in my policy explaining why it's absent now needs rewriting.
+On my own kernel, under my own policy: a Go hello world now runs under a 64M limit, where in August the same program died at 192M, at 512M and at 1G and survived only somewhere north of 2G. The 2.9 MB test binary from my sandbox package is killed under 64M and runs under 128M, which is the part I wanted to see. A limit that only kills things when they're genuinely large is a limit; the old behaviour wasn't one.
+
+I'll still let the cgroup do the measuring, for the reason I gave in the original post: cgroups count resident set size, which is the thing I actually meant. The difference is that leaving `MaxMemory` unset is now a choice rather than a workaround, and the comment in my policy explaining its absence says so.
 
 ## The musl build
 
@@ -53,6 +55,8 @@ The cause is the one I'd guessed at from the outside. Any network supervision mo
 Two details in that fix say something about how it was done. The new integration tests were confirmed to fail before the change. And four existing Python tests for port remapping had been binding ports with no allowlist declared, which means they were passing *through* the bug: they now declare one. Finding that your own test suite was relying on the broken behaviour is the unglamorous half of fixing a security control, and it's the half that tells you the fix is real.
 
 It merged a little over an hour before the release was cut.
+
+I now have a test of my own for this, which is the thing I told you to do and hadn't done. It sets `NetAllow` and `NetAllowBind` the way the agent does, asserts the declared port binds and another one doesn't, and it has teeth: against the pin my repo was carrying it fails with the sandbox happily reporting `bound` on a port outside the allowlist, and on v0.8.8 it passes. Six weeks of "declared for documented intent, relied on for nothing" turns out to have been an accurate description.
 
 The smaller fifth thing is fixed in the only way it could be. `FSWritable` granting read as well as write is Landlock semantics, not a defect, so the field comment now reads "paths the sandbox may read and write" in the Go SDK and the Python docs match. The field name no longer invites the assumption I made.
 
