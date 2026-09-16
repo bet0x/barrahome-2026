@@ -8,7 +8,7 @@
 
 Six weeks ago I wrote about [putting an LLM agent on this blog](/2026/08/06/sandboxing-a-public-llm-agent.md). Half of that post was the threat model and the bugs I'd written into my own code. The other half was a list of things about [sandlock](https://github.com/multikernel/sandlock) that cost me real time and weren't documented anywhere I could find: four of them, plus a smaller fifth.
 
-Cong Wang, who maintains the project, told me that [v0.8.8](https://github.com/multikernel/sandlock/releases/tag/v0.8.8) addressed them. I checked before believing it, because "addressed" covers everything from a real fix to a line in a changelog. It's true, and how it's true turned out to be more interesting than the fact.
+[Cong Wang](https://www.linkedin.com/in/cong-wang-b96762b/), who maintains the project, told me that [v0.8.8](https://github.com/multikernel/sandlock/releases/tag/v0.8.8) addressed them. I checked before believing it, because "addressed" covers everything from a real fix to a line in a changelog. It's true, and how it's true turned out to be more interesting than the fact.
 
 | What I reported | Status in v0.8.8 |
 |---|---|
