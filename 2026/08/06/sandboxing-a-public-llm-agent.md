@@ -107,6 +107,8 @@ That's the awkward trade I mentioned. To gain sandlock's confinement you give up
 
 If someone later "hardens" your compose file by deleting that line, the agent stops starting. Leave a comment.
 
+> **Update 2026/09/16:** the trade-off in those two paragraphs was my mistake. The blocked syscall is `pidfd_getfd`, and Docker's default profile permits it when the container holds `CAP_SYS_PTRACE`, so `--cap-add SYS_PTRACE` buys sandlock's confinement without giving up Docker's. Details in [the follow-up](/2026/09/16/what-happened-after-i-reported-four-bugs.md).
+
 **sandlock's `MaxMemory` cannot be used on a Go process at all.** This one was genuinely opaque. The worker wouldn't start: exit code -1, no output from the child, nothing in the logs. Every other knob worked. `MaxProcesses`, `MaxOpenFiles` and `MaxCPU` were all fine in isolation, and `MaxMemory` alone reproduced it.
 
 The reason is that sandlock accounts memory by intercepting `mmap` lengths rather than measuring resident set size, and the Go runtime reserves an enormous virtual arena at startup. A bare `fmt.Println` program dies at 192M, 512M and 1G and survives only somewhere north of 2G. Meanwhile `/bin/sh`, `/bin/echo` and `python3` all run happily at 192M. It's specific to Go and it isn't a misconfiguration.
@@ -238,6 +240,10 @@ Every serious problem in this project was in code I wrote and reviewed myself, a
 The sandboxing was the fun part and, in the end, the least important part. What makes this safe is the tool surface, and the tool surface is a decision you make in ten minutes at the start and then spend the whole project defending. The version of that decision I'd defend hardest is the one above: adding command execution isn't adding a tool, it's changing the architecture. The day I want it, the work is a second process with a different set of privileges, not a fourth entry in a list.
 
 The code is at [barrahome-2026-agent](https://github.com/bet0x/barrahome-2026-agent) if you want to look at it. Go press the backtick key.
+
+## Update: 2026/09/16
+
+sandlock v0.8.8 fixes three of the four problems in this post, documents the fifth, and settles the Docker one as never having been a sandlock bug at all. I've left the text above as it was written, because it's what I measured at the time. The write-up is [What Happened After I Reported Four Bugs to a Young Project](/2026/09/16/what-happened-after-i-reported-four-bugs.md).
 
 ---
 
