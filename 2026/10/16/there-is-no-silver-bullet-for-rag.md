@@ -98,29 +98,49 @@ I wanted a clean way to hold a law before I index it. My converter has a JSON sc
 
 I think this is the right shape. It also fits the argument above: the article is the unit.
 
-Then I tested it on a hard case. The Federal Civil Code is a 370-page PDF from the Chamber of Deputies. The converted JSON passes the schema with zero errors. I compared it with the PDF, and it is still wrong in four ways.
+Then I tested it on a hard case. The Federal Civil Code is a 370-page PDF from the Chamber of Deputies. The converted JSON passed the schema with zero errors. I compared it with the PDF, and it was wrong in four ways.
 
-- **The hierarchy is gone.** The PDF has 4 book headings, 47 title headings and 218 chapter headings. The JSON has zero book nodes, zero title nodes and 2 chapter nodes. The headings survive as loose text. For example, "TITULO TERCERO Del Domicilio" sits glued to the end of the previous article. My guess is that the heading pattern lists only the accented spelling "TÍTULO", and this PDF prints "TITULO" without the accent. I did not test that fix.
-- **An article is missing.** The PDF has Article 4 near the start. The JSON goes from Article 3 to Article 5.
-- **A suffix gets cut off.** "Article 28 Bis" becomes a heading "Article 28", and "Bis.-" moves into the body. So the key "28" appears twice.
-- **The separator leaks into the text.** In 3,082 of the 3,115 articles, the body starts with ".-" because the parser did not strip the separator after the number.
-
-The ordinals also stay raw. The JSON keeps "1o" and "410 A". A citation to "article 2" or "410-A" does not match those keys.
+- **The hierarchy was gone.** The PDF has 4 book headings, 49 title headings and 218 chapter headings. The JSON had zero books, zero titles and 2 chapters.
+- **An article was missing.** The PDF has Article 4 near the start. The JSON went from Article 3 to Article 5.
+- **A suffix was cut off.** "Article 28 Bis" became a heading "Article 28", and "Bis.-" moved into the body. So the key "28" appeared twice.
+- **The separator leaked into the text.** In 3,082 of the 3,115 articles, the body started with ".-".
 
 A schema checks shape. It cannot tell you that the parser found everything. So I did two things.
 
-First, I wrote version 1.1 of the schema. Every article now needs a normalized `key`, the `page` in the original PDF and a `status` (in force or repealed). A new `parte` level sits between book and title, because this code has "PRIMERA PARTE" and "TERCERA PARTE" headings. The old JSON fails the new schema with 9,346 errors. That is the point. Each article lacks the three new fields, and the old schema had no way to ask for them.
+First, I wrote version 1.1 of the schema. Every article now needs a normalized `key`, the `page` in the original PDF and a `status` (in force or repealed). A new `parte` level sits between book and title, because this code has "PRIMERA PARTE" headings. The old JSON failed the new schema with 9,346 errors. That was the point: the old schema had no way to ask for those fields.
 
-Second, I wrote a small checker that compares the JSON with the PDF text. It runs these checks:
+Second, I wrote a small checker that compares the JSON with the PDF text. It checks four things:
 
 1. The article headings in the PDF match the article keys in the JSON.
 2. No key repeats, and the numbers in the code body have no gaps.
 3. Every article has a page.
 4. Every book, title and chapter heading in the PDF exists as a node, and no separator or heading leaks into a body.
 
-On the Federal Civil Code, all of them fail, and each failure matches one of the problems above. The gap check finds the missing Article 4. The set check alone could not find it, because the decree transitories at the end of the file also contain an "Article 4". So a check that only counts articles is not enough. You need the order too.
+The checker found the problems. Then I fixed the parser. Each failure had its own cause, and none of them was the one I guessed.
 
-I have not fixed the parser yet. This is one law. I did not run the other 315 federal laws through the checker.
+**The missing article was a page-header filter.** The converter drops lines that look like a repeated page header. The pattern was case-insensitive, and it matched anywhere in the line. Article 4 says "reglamento, circular o disposición de observancia general". The pattern saw "reglamento" and "general", so the converter threw the whole article away as if it were a header. In the PDF text, about 118 lines of body text match that pattern. I confirmed that Article 4 was lost. I did not diff the other lines one by one. The fix is small. A page header is a line in capital letters that starts with the law title.
+
+**The hierarchy was an accent.** The heading pattern knew only "TÍTULO" with an accent. This PDF prints "TITULO" and "CAPITULO" without it. The same pattern also had no "LIBRO" and no "PARTE".
+
+**The suffix and the separator were one regex.** It read the heading up to the number and left "Bis.-" in the body. Now it reads the number, the ordinal mark and the suffix, and it drops the separator.
+
+**Two problems showed up only after those fixes.** The code's own transitory articles start under a heading that says "ARTICULOS TRANSITORIOS", and the parser did not know it. Also, a few editorial notes quote an article of another law ("the article of that law said:"), and the parser counted the quote as an article of the code.
+
+Here is the same checker on the same PDF, before and after.
+
+| Check | Old JSON | New JSON |
+|---|---|---|
+| Article keys missing from the JSON | 28 | 0 |
+| Repeated keys | 22 | 0 |
+| Gaps in the numbering | 1 (Article 4) | 0, from 1 to 3074 |
+| Articles with a page | 0 of 3,115 | 3,103 of 3,103 |
+| Books / titles / chapters found | 0 / 0 / 2 | 4 / 49 / 219 |
+| Bodies that start with a separator | 3,082 | 0 |
+| Errors against the schema | 9,346 | 0 |
+
+Look at the old column. The converter's own output passed its own schema. Only a comparison with the PDF showed that it was wrong.
+
+I should be clear about the limits. This is one law. The parser changes touch every law the converter handles, and I did not run the other 315 federal laws again. The existing test suite passes (430 tests), but it does not replace a full run. The checker also has blind spots. For example, a note that quotes two articles in a row would still fool the parser. The new JSON has 219 chapters where my checker counts 218 in the PDF. I have not looked into that one yet.
 
 Building RAG over a law like this is not a weekend job. Most of the work happens before any embedding exists.
 
