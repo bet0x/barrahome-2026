@@ -132,7 +132,7 @@ The final stack has native full-text as a fallback, BM25 for lexical ranking, an
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Routing a Query</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-graph TD
+graph LR
     Q[Query] --> ID{Looks like an identifier?}
     ID -->|yes| LEX[Lexical match, no stemming]
     ID -->|no| ALL[BM25: all the words]
