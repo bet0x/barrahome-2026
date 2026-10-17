@@ -26,7 +26,7 @@ The domain is the same. The users are the same. The database is the same. The te
 
 ## What I measured
 
-I wrote 63 queries: 38 for headnotes and 25 for statute articles. Each method returned its top 10 results. A language model graded each result from 0 (useless) to 2 (answers the question).
+I used 63 queries: 38 for headnotes and 25 for statute articles. Each method returned its top 10 results. A language model graded each result from 0 (useless) to 2 (answers the question).
 
 The baseline is the Postgres full-text search I started with. The vector model is a small multilingual embedding model with 384 dimensions. Hybrid fuses BM25 and vectors with reciprocal rank fusion. All numbers are nDCG@10.
 
@@ -52,7 +52,7 @@ The baseline is the Postgres full-text search I started with. The vector model i
 
 Put the two tables side by side. On headnotes, BM25 wins and vectors add nothing measurable: hybrid and BM25 are within noise of each other. On articles, vectors and hybrid tie, and both beat BM25. I evaluated both corpora, so I did not ship a confident and wrong rule for one of them.
 
-One cell deserves more attention than the winners. On concept queries over articles, BM25 scores 0.537 and hybrid drops to 0.413. Equal-weight fusion throws away the best ranker for that query type. This is the headnote lesson again, inside one corpus. When one index is clearly better, default fusion loses. My next experiment on articles is weighted fusion, as I already use on headnotes.
+One cell deserves more attention than the winners. On concept queries over articles, BM25 scores 0.537 and hybrid drops to 0.413. Only five queries make up that cell, so treat it as a hint. It suggests that equal-weight fusion throws away the best ranker for that query type. This is the headnote lesson again, inside one corpus. When one index is clearly better, default fusion loses. My next experiment on articles is weighted fusion, as I already use on headnotes.
 
 The identifier column is my favorite result. A citation identifier is an opaque string. An embedding model has no reason to place it near anything, and it scored exactly zero. A lexical index that does not stem the identifier scored 0.845. You cannot tune your way out of that. The vector side is the wrong tool for that query.
 
@@ -69,9 +69,9 @@ I prefer that you read these limits first.
 
 After the experiment, I also checked 30 real queries by hand on the deployed system. On articles, the hybrid beat the previous behavior in 14 of 18 comparisons. That agrees with the lab numbers. It does not prove them.
 
-## The biggest win was not a model
+## The biggest win may not have been a model
 
-Look at the statute table again. The jump from 0.171 to 0.359 comes from BM25 alone. That result uses no embeddings. That jump mixes two changes: BM25 instead of the native ranking, and articles instead of whole statutes as the unit. I did not measure native full-text over articles, so I cannot split the gain. My hypothesis is that the unit matters more, for the reasons below.
+Look at the statute table again. The jump from 0.171 to 0.359 is the BM25 row, and it uses no embeddings. It mixes two changes: BM25 instead of the native ranking, and articles instead of whole statutes as the unit. I did not measure native full-text over articles, so I cannot split the gain. My hypothesis is that the unit matters more, for the reasons below.
 
 My first design indexed whole statutes with Postgres `tsvector`. A `tsvector` stores word positions only up to 16,383. My database held 6,546 visible statutes, and 1,942 of them had more than 16,383 words. Past that position, the system loses the word-proximity data that `ts_rank_cd` needs. Another 21 statutes pass 1 MB, the hard limit of a `tsvector`. Postgres rejects longer input with an error. So my index cut the text at one million characters, and it never indexed the end of those laws.
 
