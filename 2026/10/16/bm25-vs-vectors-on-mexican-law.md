@@ -1,4 +1,4 @@
-# There Is No Silver Bullet for RAG: Different Text, Different Index
+# Same Database, Same Users, Opposite Winner: BM25 vs Vectors on Mexican Law
 
 **Published on:** 2026/10/16
 
@@ -20,7 +20,7 @@ Law looks uniform from far away. It is not. I search two very different things.
 
 **Statutes** are long documents with a strict hierarchy: titles, chapters, numbered articles, sub-items. A user almost never wants the whole statute. They want one article inside it.
 
-**Case-law headnotes** are short summaries of what a court decided. Each one has a heading, a body, and a citation identifier that lawyers paste around exactly as written. I have about 178,000 of them.
+**Case-law headnotes** are short summaries of what a court decided. Each one has a heading, a body, and a citation identifier that lawyers paste around exactly as written. The evaluation used about 178,000 of them. The corpus is larger now.
 
 The domain is the same. The users are the same. The database is the same. The text has a different shape, and so the best retriever is different.
 
@@ -50,7 +50,9 @@ The baseline is the Postgres full-text search I started with. The vector model i
 | Vectors | 0.418 | 0.248 | **0.460** |
 | Hybrid | **0.429** | 0.413 | 0.434 |
 
-Put the two tables side by side. On headnotes, BM25 wins and vectors add nothing. Hybrid lands slightly below BM25 alone. On articles, vectors beat BM25 and hybrid is the best. I evaluated both corpora, so I did not ship a confident and wrong rule for one of them.
+Put the two tables side by side. On headnotes, BM25 wins and vectors add nothing measurable: hybrid and BM25 are within noise of each other. On articles, vectors and hybrid tie, and both beat BM25. I evaluated both corpora, so I did not ship a confident and wrong rule for one of them.
+
+One cell deserves more attention than the winners. On concept queries over articles, BM25 scores 0.537 and hybrid drops to 0.413. Equal-weight fusion throws away the best ranker for that query type. This is the headnote lesson again, inside one corpus. When one index is clearly better, default fusion loses. My next experiment on articles is weighted fusion, as I already use on headnotes.
 
 The identifier column is my favorite result. A citation identifier is an opaque string. An embedding model has no reason to place it near anything, and it scored exactly zero. A lexical index that does not stem the identifier scored 0.845. You cannot tune your way out of that. The vector side is the wrong tool for that query.
 
@@ -62,23 +64,24 @@ I prefer that you read these limits first.
 
 - **A language model graded the results, not a lawyer.** It may reward text that only sounds similar, and that favors vectors. The numbers compare methods with each other. They do not measure absolute quality.
 - **The queries are few and an AI wrote them.** With 25 article queries, a gap of 0.05 can be noise. Only five of those are "concept" queries. So 0.537 against 0.248 is a hint, not a proof.
+- **The two biases pull in opposite directions.** An LLM judge may favor vectors. But an LLM that writes queries from the documents often uses the same words as the documents. That favors BM25. Both biases are in these numbers.
 - **The evaluation covers only five jurisdictions** of the statute corpus.
 
 After the experiment, I also checked 30 real queries by hand on the deployed system. On articles, the hybrid beat the previous behavior in 14 of 18 comparisons. That agrees with the lab numbers. It does not prove them.
 
 ## The biggest win was not a model
 
-Look at the statute table again. The jump from 0.171 to 0.359 comes from BM25 alone. That result uses no embeddings. Part of that gain is BM25 ranking better than the native ranking. A larger part comes from a decision about what one row is.
+Look at the statute table again. The jump from 0.171 to 0.359 comes from BM25 alone. That result uses no embeddings. Two changes are mixed in that jump: BM25 instead of the native ranking, and articles instead of whole statutes as the unit. I did not measure native full-text over articles, so I cannot split the gain. My hypothesis is that the unit matters more, for the reasons below.
 
-My first design indexed whole statutes with Postgres `tsvector`. A `tsvector` stores word positions only up to 16,383. My database holds 6,546 visible statutes, and 1,942 of them are longer than that limit. Past the limit, the system loses the word-proximity data that `ts_rank_cd` needs. Another 21 statutes pass 1 MB and Postgres truncates them.
+My first design indexed whole statutes with Postgres `tsvector`. A `tsvector` stores word positions only up to 16,383. My database held 6,546 visible statutes, and 1,942 of them had more than 16,383 words. Past that position, the system loses the word-proximity data that `ts_rank_cd` needs. Another 21 statutes pass 1 MB, the hard limit of a `tsvector`. Postgres rejects longer input with an error. So my index cut the text at one million characters, and it never indexed the end of those laws.
 
 So the ranking worked on short laws and quietly got worse on long ones. Long laws are the ones people most need to search.
 
-The fix was to index articles instead of statutes. Each row is one article. It carries the statute title and the jurisdiction as metadata. This is a data-model change, not a new algorithm. It moved the number more than the choice between BM25 and vectors.
+The fix was to index articles instead of statutes. Each row is one article. It carries the statute title and the jurisdiction as metadata. This is a data-model change, not a new algorithm. I think it moved the number more than the choice between BM25 and vectors. But, as I said above, I did not isolate it.
 
 The old flow found the three best whole statutes and then pulled articles out of them. If it chose the wrong statutes, it could not recover. Direct article search removes that failure.
 
-If I could give one piece of RAG advice, it would be this: decide what one answer is before you pick an embedding model. Then index that unit. For statutes, it is an article. For headnotes, it is the whole headnote. For long court rulings, it is something else again. One chunking strategy for all of them is the quiet version of the silver bullet.
+If I could give one piece of RAG advice, it would be this: decide what one answer is before you pick an embedding model. Then index that unit. For statutes, it is an article. For headnotes, it is the whole headnote. For long court rulings, it is something else again. One chunking strategy for all of them is the quiet version of a single winning retriever.
 
 ## The conversion step decides retrieval quality
 
@@ -88,7 +91,7 @@ None of this works if the unit is dirty. Getting a clean unit out of a governmen
 - **Move amendment marks out of the text.** Statutes contain many marks like "(Reformed, published on ...)". Inside the article body, they add noise to BM25 statistics and to the embedding. I move them into notes on the article. This is my reasoning, not a measurement. I did not run the ablation, so treat it as a hypothesis.
 - **Fix text in capital letters.** Some sources publish whole statutes in capitals without accents. The converter restores sentence case and accents only when nearly all letters are uppercase.
 - **Give each article a stable key, and parse it in one place.** "Article 27 Bis", "ARTICULO 97BIS" and "Art. 278-Bis" all become one normalized key. The importer, the index and the assistant's citations all use the same module. So I can check each citation in an answer against the corpus by exact key. A legal retrieval system that can misquote an article is not useful.
-- **Treat scanned pages as unverified.** Some documents have no text layer. I run OCR page by page and compare it with the stored text. I do not trust the transcription until it passes that check.
+- **Treat scanned pages as unverified.** Some documents have no text layer. So I have no text to compare with the OCR. I send each page to a vision model as horizontal strips. This keeps enough resolution for identifiers. When the model marks text as illegible two or more times on a page, I flag that page. A person compares flagged pages with the scan before the text counts as verified.
 
 This work is not exciting. It never appears in an embedding-model benchmark. It decides whether the system works.
 
@@ -177,7 +180,7 @@ If you build this on Postgres, these notes may save you time.
 - **Cache embeddings by a hash of the exact text you embedded.** The text you embed is not always the text you store. You may add titles or remove annotations. I key the cache on the derived string. A vector computed on a GPU workstation then works in production, even when row ids differ.
 - **Use iterative scans for filtered vector search.** With an HNSW index, a filter such as jurisdiction can leave you with a short result list. `hnsw.iterative_scan` keeps scanning until enough rows pass the filter.
 - **Build the HNSW index after the bulk load.** Watch your memory settings too. With a small shared memory size, a large `maintenance_work_mem` made the build fail. 1 GB was enough.
-- **Load BM25 data in small batches.** One huge insert left a search at over a second instead of about a millisecond. A `REINDEX` fixed it.
+- **Reindex BM25 after a bulk load.** One huge insert left a search at over a second instead of about a millisecond. A `REINDEX` fixed it. Plan one after every large load.
 - **Choose the tokenizer per column.** Prose gets a Spanish stemmer with accent folding. Identifiers get a plain tokenizer with no stemming. The same table can use both.
 - **Count the cost of embeddings.** One query costs about 12 ms on a desktop CPU with four threads. On a weak server CPU, bulk embedding runs at a few texts per second. I embed in bulk on a GPU, which does hundreds per second, and I ship the vectors to the server.
 
