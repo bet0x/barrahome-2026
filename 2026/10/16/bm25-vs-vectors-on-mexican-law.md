@@ -71,7 +71,7 @@ After the experiment, I also checked 30 real queries by hand on the deployed sys
 
 ## The biggest win was not a model
 
-Look at the statute table again. The jump from 0.171 to 0.359 comes from BM25 alone. That result uses no embeddings. Two changes are mixed in that jump: BM25 instead of the native ranking, and articles instead of whole statutes as the unit. I did not measure native full-text over articles, so I cannot split the gain. My hypothesis is that the unit matters more, for the reasons below.
+Look at the statute table again. The jump from 0.171 to 0.359 comes from BM25 alone. That result uses no embeddings. That jump mixes two changes: BM25 instead of the native ranking, and articles instead of whole statutes as the unit. I did not measure native full-text over articles, so I cannot split the gain. My hypothesis is that the unit matters more, for the reasons below.
 
 My first design indexed whole statutes with Postgres `tsvector`. A `tsvector` stores word positions only up to 16,383. My database held 6,546 visible statutes, and 1,942 of them had more than 16,383 words. Past that position, the system loses the word-proximity data that `ts_rank_cd` needs. Another 21 statutes pass 1 MB, the hard limit of a `tsvector`. Postgres rejects longer input with an error. So my index cut the text at one million characters, and it never indexed the end of those laws.
 
@@ -121,13 +121,13 @@ Second, I wrote a small checker that compares the JSON with the PDF text. It che
 
 The checker found the problems. Then I fixed the parser. Each failure had its own cause, and none of them was the one I guessed.
 
-**The missing article was a page-header filter.** The converter drops lines that look like a repeated page header. The pattern was case-insensitive, and it matched anywhere in the line. Article 4 says "reglamento, circular o disposición de observancia general". The pattern saw "reglamento" and "general", so the converter threw the whole article away as if it were a header. In the PDF text, about 118 lines of body text match that pattern. I confirmed that Article 4 was lost. I did not diff the other lines one by one. The fix is small. A page header is a line in capital letters that starts with the law title.
+**The missing article was a page-header filter.** The converter drops lines that look like a repeated page header. The pattern was case-insensitive, and it matched anywhere in the line. Article 4 says "reglamento, circular o disposición de observancia general". The pattern saw "reglamento" and "general", so the converter threw the whole article away as if it were a header. In the PDF text, about 118 lines of body text match that pattern. I checked that Article 4 was lost. I did not diff the other lines one by one. The fix is small. A page header is a line in capital letters that starts with the law title.
 
 **The hierarchy was an accent.** The heading pattern knew only "TÍTULO" with an accent. This PDF prints "TITULO" and "CAPITULO" without it. The same pattern also had no "LIBRO" and no "PARTE".
 
 **The suffix and the separator were one regex.** It read the heading up to the number and left "Bis.-" in the body. Now it reads the number, the ordinal mark and the suffix, and it drops the separator.
 
-**Two problems showed up only after those fixes.** The code's own transitory articles start under a heading that says "ARTICULOS TRANSITORIOS", and the parser did not know it. Also, a few editorial notes quote an article of another law ("the article of that law said:"), and the parser counted the quote as an article of the code.
+**Two problems appeared only after those fixes.** The code's own transitory articles start under a heading that says "ARTICULOS TRANSITORIOS", and the parser did not know it. Also, a few editorial notes quote an article of another law ("the article of that law said:"). The parser counted the quote as an article of the code.
 
 Here is the same checker on the same PDF, before and after.
 
@@ -210,4 +210,4 @@ No retrieval method works on all of your text, because your text is not one kind
 
 ---
 
-*AI was used for research and drafting assistance on this post.*
+*I used AI for research and drafting assistance on this post.*
