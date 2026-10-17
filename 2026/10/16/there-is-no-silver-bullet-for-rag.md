@@ -140,7 +140,9 @@ Here is the same checker on the same PDF, before and after.
 
 Look at the old column. The converter's own output passed its own schema. Only a comparison with the PDF showed that it was wrong.
 
-I should be clear about the limits. This is one law. The parser changes touch every law the converter handles, and I did not run the other 315 federal laws again. The existing test suite passes (430 tests), but it does not replace a full run. The checker also has blind spots. For example, a note that quotes two articles in a row would still fool the parser. The new JSON has 219 chapters where my checker counts 218 in the PDF. I have not looked into that one yet.
+I should be clear about the limits. This is one law. The parser changes touch every law the converter handles, and I did not run the other 315 federal laws again. The test suite passes (442 tests), but it does not replace a full run. The parser also has blind spots. For example, a note that quotes two articles in a row would still fool it.
+
+The checker had a blind spot too, and it showed up as a mismatch. It counted 218 chapters in the PDF, and the JSON had 219. The JSON was right. The PDF prints "Capítulo III Bis" in lower case, and my checker only looked for capital letters. A mismatch between the parser and the checker does not tell you which one is wrong. I had to open the PDF.
 
 Building RAG over a law like this is not a weekend job. Most of the work happens before any embedding exists.
 
