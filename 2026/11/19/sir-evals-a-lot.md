@@ -30,13 +30,39 @@ flowchart TB
 
 That's a lot of parts that can change: the prompt, a tool, the loop that drives the model, a playbook, the agent. I change one of them almost every day. For months I had no way to tell whether a change made the diagnoses better or worse, other than reading incidents and forming an opinion. This is the story of the day I stopped doing that, and most of what I found wasn't in the model.
 
+## Review, Quality and Evals
+
+Three parts of Kosken carry this story, and they work as one loop.
+
+Review is a tab on every closed incident, next to its report. The report gives the cause, and each claim cites the check that shows it, like `[E4]`. In the Review a person answers two questions: was the cause right, and was the fix right. That answer goes three ways. It corrects the memory of past incidents, so a cause marked wrong is never read again and a cause a person wrote wins over the model's. It feeds Quality. And a Partly or a Wrong turns the incident into a candidate eval case.
+
+Quality is the page that adds it all up per workspace, for 7, 30 or 90 days: how incidents ended, how many causes people marked right, wrong fixes, the median time to resolve, how many changes ran by a rule or after an approval, and the tokens per incident. It tells me how Kosken did on real incidents, but only after the fact, and only as far as people answer the Review.
+
+Evals looks forward. It takes the cases that the Review produced, replays them on the prompt and model I want to try, and grades them before anything reaches production. Quality says how the last incidents went. Evals says whether the next change makes them better or worse.
+
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>From a review to the next prompt</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
+<div class="mermaid">
+flowchart LR
+    R["Closed incident<br/>report with a cited cause"] --> V["Review<br/>cause and fix"]
+    V --> M["Memory<br/>corrected"]
+    V --> Q["Quality<br/>live numbers"]
+    V -->|partly or wrong| C["Eval case"]
+    C --> E["Eval run<br/>replay and grade"]
+    E --> P["Next prompt<br/>or model"]
+    P -.-> R
+</div>
+</div>
+</div>
+
 ## It started with a Review tab
 
-An eval needs something to compare against, and for an SRE tool that something is a person who reads a closed incident and says whether the diagnosis was right. So I added a Review tab to every incident with two questions: was the cause right, partly right or wrong, and was the fix right.
+An eval needs something to compare against, and for an SRE tool that something is a person who reads a closed incident and says whether the diagnosis was right. So the Review tab came first, before any eval.
 
 Then I went through about a hundred closed incidents from my lab and answered them. It was a tedious hour. It was also the hour that taught me the most, starting with the fact that three of those incidents got a "right" while they were still diagnosing. You can't grade a diagnosis that isn't done, so the tab now shows only on closed incidents.
 
-A Partly or a Wrong answer does one more thing. It turns the incident into a candidate eval case, which keeps what the model saw: the input of the diagnosis, every tool call it made with the exact output, and what a person expects. That last part is the cause in words, a few key terms the answer has to contain, the fixes I accept and the recipes I forbid.
+A candidate eval case keeps what the model saw: the input of the diagnosis, every tool call it made with the exact output, and what a person expects. That last part is the cause in words, a few key terms the answer has to contain, the fixes I accept and the recipes I forbid.
 
 To run a case, a replay feeds the current prompt and model the same input. When the model asks for a check, the replay answers with the recorded output, and nothing touches a machine. A second model compares the cause it wrote with the expected one, and plain code checks the fixes against the accepted and forbidden lists.
 
@@ -107,6 +133,12 @@ I meant to change one thing at a time, so I could tell which fix did what. Then 
 | Tool calls per repeat | 23.5 | 11.3 |
 | Tokens per repeat | 123,563 | 77,340 |
 | Tokens for the run | 2.97 M | 1.86 M |
+
+This is the screen I'd been waiting for all day. It's the page of the second run, compared with the first one. The four cases that failed before now say "Now passes", and nothing went the other way. Every number at the top carries its "before": 50% to 100% of the cases, and 123,563 to 77,340 tokens per repeat.
+
+![The eval run page of diagnose@15 compared with the diagnose@14 run: 8 of 8 cases passed, cause right 96%, fix matches 100%, 0 wrong fixes, 77,340 tokens per repeat](/2026/11/19/sir-evals-a-lot-run.png)
+
+Each case has one dot per repeat. The red dot on the second worker case is a "partly", and the empty dot on the container case is the repeat where the grader didn't answer. A case passes when most of its repeats pass, so both cases still count, but those two dots are why I read the repeats and not only the green column.
 
 Because I mixed the changes, I had to go back to the call lists to split the credit, and luckily each fix leaves its own mark. No repeat reached the limit this time, the highest was 28 calls, so the loop fix didn't do anything in this run. It's there for the next diagnosis that runs out. The replay fix shows up as calls answered "with other limits", up to five in a repeat, and each of those would have been a dead end and a retry before. The prompt shows up in the call count, which fell by half. A kinder replay stops the retries, but it can't make the model ask for less. Most repeats of the worker and memcached cases now finish in six or seven calls, close to those four steps.
 
