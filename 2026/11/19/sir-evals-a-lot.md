@@ -1,4 +1,4 @@
-# Sir Eval a lot
+# Sir Evals a lot
 
 **Published on:** 2026/11/19
 
