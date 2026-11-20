@@ -6,80 +6,48 @@
 
 ---
 
-I build Kosken, an SRE platform. A small agent runs on each machine and watches it. When a monitor fires, a model gets the incident and about a dozen tools. The tools run read-only checks, read metrics and signals, search past incidents, and look up recipes in a catalog. The model finds the cause and proposes a fix. A person or a set of gates decides whether the fix runs.
+I build Kosken, an SRE platform. A small agent runs on each machine and watches it, and when a monitor fires, a model gets the incident and about a dozen tools. It runs read-only checks, reads metrics and signals, looks at past incidents and searches a catalog of recipes. Then it says what's wrong and proposes a fix, and a person or a set of gates decides whether the fix runs.
 
-So a diagnosis depends on the agent, the platform, the model, the tools, a long prompt and the recipes. I change one of them almost every day. Until this week I could not say whether a change made Kosken better or worse.
+I change some part of that almost every day: the prompt, a tool, the loop that drives the model, the agent. For months I had no way to tell whether a change made the diagnoses better or worse, other than reading incidents and forming an opinion. This is the story of the day I stopped doing that, and most of what I found wasn't in the model.
 
-This post is about the first real eval run, and what it found. Most of it was not in the model.
+## It started with a Review tab
 
-## Feedback first, then cases
+An eval needs something to compare against, and for an SRE tool that something is a person who reads a closed incident and says whether the diagnosis was right. So I added a Review tab to every incident with two questions: was the cause right, partly right or wrong, and was the fix right.
 
-An eval needs a ground truth. For an SRE tool, that is a person who reads a closed incident and says whether the diagnosis was right.
+Then I went through about a hundred closed incidents from my lab and answered them. It was a tedious hour. It was also the hour that taught me the most, starting with the fact that three of those incidents got a "right" while they were still diagnosing. You can't grade a diagnosis that isn't done, so the tab now shows only on closed incidents.
 
-Every closed incident now has a Review tab with two questions. Was the cause right, partly right, or wrong? Was the fix right? I answered it for about a hundred closed incidents from my lab. It took an hour and it was tedious, but it was the most useful hour of the week. In the first pass, three incidents got a "right" while they were still diagnosing. Now the Review tab shows only on closed incidents.
+A Partly or a Wrong answer does one more thing. It turns the incident into a candidate eval case, which keeps what the model saw: the input of the diagnosis, every tool call it made with the exact output, and what a person expects. That last part is the cause in words, a few key terms the answer has to contain, the fixes I accept and the recipes I forbid.
 
-A Partly or Wrong answer also creates a candidate eval case from the incident. The case keeps what the model saw:
+To run a case, a replay feeds the current prompt and model the same input. When the model asks for a check, the replay answers with the recorded output, and nothing touches a machine. A second model compares the cause it wrote with the expected one, and plain code checks the fixes against the accepted and forbidden lists.
 
-- The input of the diagnosis: the server, its facts, the monitor, the signals and the notes.
-- Every tool call that the model made, with its exact output.
-- The result that a person expects. That is the cause in words, key terms that the answer must contain, the fixes that I accept, and the recipes that I forbid.
+## The false alarms
 
-A replay runs the current prompt and model against the case. When the model asks for a check, the replay gives it the recorded output. Nothing runs on a machine. A second model compares the cause with the expected one. Code checks the fixes and the forbidden recipes, without a model.
+My first cases came from a bug, and I caused it.
 
-## The bug that made the cases
+I was deploying the platform that afternoon while the lab ran. Each deploy restarts the platform, and the agents lose their connection for a few seconds. The agent had a habit I didn't know about: a monitor check that was running at that moment got cut off, and the agent reported it as failed instead of "couldn't evaluate". After one deploy, five monitors fired in the same second. Three services, a container and a URL behind nginx, and every one of them was healthy.
 
-My first eight cases came from one bug in the agent.
+Kosken got all five right. Each diagnosis said there was no fault and nothing to fix, which was true. I fixed the agent so a cut-off check counts as an error, and the platform ignores errors.
 
-I deployed the platform while the lab ran, and the agents lost their connection for a few seconds. The monitor checks that ran at that moment stopped halfway. The agent reported them as failed, when it should have reported "could not evaluate". Five monitors fired in the same second: three services, a container, and a URL behind nginx. All five were healthy.
+What bothered me was how much work it took to say "nothing is wrong". The recorded diagnoses used between 18 and 30 tool calls each, and 30 is the limit. The worst one checked six services, the container, the network and the listening ports, searched the recipe catalog eight times and then ran out of calls. That incident closed with "the diagnosis used its turn budget" and no diagnosis at all.
 
-Kosken got all five right. Each diagnosis said that there was no fault and nothing to fix. I changed the agent so that a check that stops halfway is an error and not a failure, and the platform ignores errors.
+Those diagnoses became my first eight cases. The expected answer is "no fault, no change", and starting or restarting the healthy service is forbidden. A model that "fixes" something that isn't broken fails the case.
 
-Then I looked at what it cost to say "nothing is wrong":
+## The first run, twice
 
-| Recorded diagnosis | Tool calls | Concluded |
-|---|---|---|
-| SRE 05 api | 18 | yes |
-| SRE 03 worker | 20 | yes |
-| SRE 03 worker (another one) | 20 | yes |
-| SRE 06 memcached | 20 | yes |
-| SRE 05 api (another one) | 21 | yes |
-| SRE 04 container | 22 | yes |
-| SRE 02 nginx app | 29 | yes, on the last call |
-| SRE 02 nginx app (another one) | 30 | no |
+I started the first eval run, and a few minutes later I deployed again. Then again. The same deploys that made the false alarms killed the run. The job had a single attempt and no way to pick up where it stopped, so it sat at "Running" and blocked the next run until I fixed it. Now a run gets three attempts, each attempt skips the repeats that already have a result, and I can stop a run by hand. If you write an eval runner, make it survive a deploy before anything else, because you will deploy in the middle of a run.
 
-The limit is 30 tool calls. The last diagnosis in the table never concluded. It checked six services, the container, the network and the listening ports. It searched the recipe catalog eight times. Then it hit the limit, and the incident closed with "the diagnosis used its turn budget".
-
-These diagnoses became my first cases. The expected answer is "no fault, no change". A restart or a start of the healthy service is a forbidden recipe, so a model that "fixes" the service fails the case.
-
-## The first run
-
-The first attempt at a run died halfway, and my own deploys killed it. The job had one attempt and could not resume, so it stayed at "Running" and blocked the next run. I deployed twice in ten minutes that evening. Now a run gets three attempts, each attempt skips the repeats that already have a result, and the owner can stop a run. If you build an eval runner, make it survive a deploy before anything else.
-
-Then I ran the eight cases, three repeats each, on the current prompt, `diagnose@14`:
-
-| | Result |
-|---|---|
-| Cases passed | 4 of 8 (50%) |
-| Cause right, in repeats that finished | 86% |
-| Repeats that stopped with an error | 10 of 24 |
-| Wrong fixes proposed | 1 |
-| Tool calls per repeat | 23.5 |
-| Tokens per repeat | 123,563 |
-
-When the model finished, it was almost always right. One repeat named the wrong main cause and proposed a forbidden recipe, and the forbidden list caught it. All ten errors had the same message:
+The second try finished. Eight cases, three repeats each, on the prompt that was live, `diagnose@14`. Four of eight cases passed. When the model finished a diagnosis it was almost always right (86% of the causes), and one repeat named the wrong cause and proposed a forbidden recipe, which the forbidden list caught. But 10 of the 24 repeats didn't finish at all, and they all failed with the same line:
 
 ```
 agent loop: tool call limit reached
 30 checks, 21 not recorded, 14 model calls, 142,118 tokens
 ```
 
-## Three problems, and one of them was the model
+## Reading the calls
 
-For each failed repeat I read what the model called, what the replay answered, and where the run stopped. I found three different problems.
+The pass rate on its own would have sent me to the prompt. Instead I put the recorded calls of each case next to the numbers of each failed repeat, and read the code of the loop and the replay. I found three problems, and they were in three different places.
 
-### 1. The loop did not let the model finish
-
-At the limit, the loop told the model: "The tool call limit is reached. Give your final answer now." My prompt tells the model to end with the `conclude` tool. The model did what the prompt said and called `conclude`. The loop counted that as a second call past the limit and stopped the run with an error.
+The first one was in the loop. When the model hits the limit, the loop tells it "The tool call limit is reached. Give your final answer now." My prompt tells the model to finish by calling the `conclude` tool. So the model did exactly what it was told and called `conclude`, and the loop counted that as a second call past the limit and stopped the run.
 
 <div class="cde-window">
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>The model ends the way the prompt says, and the loop stops it</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
@@ -98,71 +66,41 @@ sequenceDiagram
 </div>
 </div>
 
-This bug was in production too. It is why the nginx incident closed with no diagnosis. The loop now has closing tools. Past the limit, the model can call `conclude` one time, and the message at the limit tells it to. All other tools stay blocked.
+That one hurt, because it wasn't only in the eval. It's why the nginx incident in production closed with nothing. The model had found the answer and the loop threw it away. Now the loop has closing tools: past the limit, the model can still call `conclude` once, and the message at the limit says so.
 
-### 2. The replay was too strict
+The second problem was in my replay. It answered a call only when the tool and the arguments matched a recorded call exactly. But the model in a replay doesn't ask the same way twice. It asked for `kosken-api` where the recording had `kosken-api.service`, for 80 lines of journal where the recording had 60, for a six-hour window where the recording had one hour, and for port `"8082"` as text where the recording had a number. Every one of those got "Not recorded in this case." The model took that as a temporary failure and tried again with other values, and that's where the 17 to 21 unrecorded calls per repeat came from.
 
-The replay answered a call only when the tool and the arguments matched a recorded call exactly. The model in a replay does not always ask the same way as the model in the recording:
+A replay that's too strict produces the same numbers as a model that's too curious. If I hadn't read the calls, I'd have spent the evening tightening the prompt against my own harness. The replay now matches a call by what it reads, meaning the tool, the recipe and the unit, container or port, and it ignores size and time arguments. It answers with the recorded output and says the limits were different. A call that reads something genuinely new still gets "not recorded", with a note that other values won't help. Each repeat also keeps the list of its calls now, so the next time I don't have to guess where the budget went.
 
-- `unit: "kosken-api"` where the recording has `"kosken-api.service"`
-- `lines: 80` where the recording has `lines: 60`
-- `window: "6h"` where the recording has `"1h"`
-- `port: "8082"` as text where the recording has the number
-
-Each of these got "Not recorded in this case." The model took it as a temporary failure and tried again with other values. That explains the 17 to 21 unrecorded calls in each failed repeat. Most of the budget went on retries against my replay.
-
-A replay that is too strict gives the same numbers as a model that asks too much. If I had not read the calls, I would have blamed the prompt.
-
-Now the replay matches a call by what it reads: the tool, the recipe, and the object (the unit, the container or the port). It ignores size and time arguments. It gives the recorded output and says that the limits were different. A call that reads something new still gets "not recorded", and the message says that other values will not help. Each repeat also keeps its list of calls and the answer to each one, so I can see where the budget went.
-
-### 3. The model treats a false alarm like an outage
-
-This problem is in the model, and it costs money in production too. The prompt says: "Before you conclude, run every read-only check that can show the cause." For a real fault, that rule is good. For a monitor that already came back by itself, the model uses it to check the whole machine.
-
-A false alarm needs about four steps. Check the status of the unit. Read the signals. Read the journal of the unit and of the agent around that time. Conclude. So `diagnose@15` adds two rules:
-
-- When a monitor is back in its desired state, the diagnosis stays short. The prompt names a lost agent connection and a check that timed out as known reasons for one failure.
-- The model does not run the same check again with other limits, unless the first output was cut and the missing part matters.
+The third problem was the model, and it costs money in production too. The prompt says to run every read-only check that can show the cause before concluding. That's a good rule when something is broken. When a monitor fired once and came back by itself, the model applies the same rule and goes through the whole machine. A false alarm needs about four steps: the status of the unit, the signals, the journal of the unit and of the agent around that time, and a conclusion. So `diagnose@15` keeps that kind of diagnosis short, names a lost agent connection or a check that timed out as known reasons for a single failure, and asks the model not to rerun a check with bigger limits unless the first output was cut.
 
 ## The second run
 
-My plan was to change one thing at a time: the loop first, then the replay, then the prompt. Then I put all three in the same deploy. So the second run measures all three together. Same eight cases, same model, three repeats each:
+I meant to change one thing at a time, so I could tell which fix did what. Then I shipped the loop fix, the replay fix and the new prompt in the same deploy, and ran the same eight cases again.
 
 | | `diagnose@14`, old loop and replay | `diagnose@15`, new loop and replay |
 |---|---|---|
-| Cases passed | 4 of 8 (50%) | 8 of 8 (100%) |
-| Cause right | 86% | 96% |
+| Cases passed | 4 of 8 | 8 of 8 |
+| Causes right | 86% | 96% |
 | Repeats with an error | 10 | 1 |
 | Wrong fixes proposed | 1 | 0 |
 | Tool calls per repeat | 23.5 | 11.3 |
 | Tokens per repeat | 123,563 | 77,340 |
 | Tokens for the run | 2.97 M | 1.86 M |
 
-Each fix leaves a different trace in the call lists, so I can still tell them apart.
+Because I mixed the changes, I had to go back to the call lists to split the credit, and luckily each fix leaves its own mark. No repeat reached the limit this time, the highest was 28 calls, so the loop fix didn't do anything in this run. It's there for the next diagnosis that runs out. The replay fix shows up as calls answered "with other limits", up to five in a repeat, and each of those would have been a dead end and a retry before. The prompt shows up in the call count, which fell by half. A kinder replay stops the retries, but it can't make the model ask for less. Most repeats of the worker and memcached cases now finish in six or seven calls, close to those four steps.
 
-No repeat reached the limit. The highest count was 28 calls. So the loop fix did nothing in this run. It is there for the next diagnosis that runs out of calls.
+The one error was the grader handing back an empty answer, so it gets a second try now. The one "partly" found no fault, correctly, and then insisted the agent hadn't lost its connection, and the grader was right to mark it down.
 
-The replay fix shows in the answers. Some repeats got up to five calls answered "with other limits". In the first run, each of those calls got "not recorded" and caused more calls.
+There was one more surprise, in my own arithmetic. The summary of the first run said 74,582 tokens per repeat, which looked cheaper than the second run. It added up the tokens of the repeats that finished and divided by all of them. The ten repeats that hit the limit were the most expensive ones, and they counted as zero. The real number was 123,563. An eval that reports cost needs its cost tested like everything else.
 
-The prompt shows in the number of calls, which fell by half. A replay that answers more calls can stop the retries, but it cannot make the model ask for less. Most repeats of the worker and memcached cases now end in six or seven calls. That is close to the four steps a false alarm needs.
+## Where it stands
 
-The one error came from the grader. It gave an empty answer one time, and now it gets a second try. The one "partly" found no fault, which is correct, but it also said that the agent did not lose its connection. The grader was right to mark it down.
+I still owe one run: the old prompt on the new loop and replay. That's the clean baseline I should have had, and the next prompt change will need it anyway.
 
-I still owe one run: `diagnose@14` on the new loop and replay. The next prompt change needs that baseline anyway.
+The nginx case is still the one I don't like. It's the incident that ran out of calls in production, and in this run it took 28, 16 and 21 calls. It passes now, but it costs about twice what the others cost, and that's the next thing I'll read through call by call.
 
-One case still bothers me. The nginx case that ran out of calls in production took 28, 16 and 21 calls in this run. It passes, but it costs twice as much as the others. I will look at it next.
-
-## What I take from this
-
-The eval tested the whole system, and the worst bug was in how two parts met. The tool limit was reasonable. The prompt that asks for `conclude` was reasonable. Together they threw away correct diagnoses in production. I could not see that in the prompt or on the incident page, because "used its turn budget" looks like the model's fault.
-
-The first pass rate was 50%, and the model caused only part of it. If I had tuned the prompt against that number, I would have tuned it around my own replay. Read the calls of a failed repeat before you touch the prompt. And change one thing per run. I did not, and I had to read 24 call lists to know which fix did what.
-
-Count tokens next to the pass rate, and check how you count them. The repeats that finished in the first run used about 128,000 tokens each to say "nothing is wrong". An eval that counts only pass and fail would call that a success. My summary also had a bug. It added the tokens of the repeats that finished, then divided by all repeats. The first run showed 74,582 tokens per repeat instead of 123,563. The errors used the most tokens, and the summary made that run look like the cheapest one.
-
-The cases came from people. The Review tab is the slow part, and it is also the reason the eight cases exist. Every Partly or Wrong answer becomes a candidate case, and each case stays as a test.
-
-Treat the eval runner like production code. It must survive a deploy, a person must be able to stop it, and it must keep enough detail per repeat to explain a failure. Mine did none of that on the first run.
+What I keep coming back to is that the worst bug of the day wasn't a wrong answer. It was a right answer that the loop threw away, on a real incident, and nothing on the incident page pointed at the loop. I found it because a pass rate of 50% didn't make sense next to causes that were 86% right, and that made me read the calls instead of the prompt.
 
 ---
 
