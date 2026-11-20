@@ -6,9 +6,35 @@
 
 ---
 
-I build Kosken, an SRE platform. A small agent runs on each machine and watches it, and when a monitor fires, a model gets the incident and about a dozen tools. It runs read-only checks, reads metrics and signals, looks at past incidents and searches a catalog of recipes. Then it says what's wrong and proposes a fix, and a person or a set of gates decides whether the fix runs.
+I build Kosken, an SRE platform, based on my experience experimenting with OpenRemedy and Nanoinfra.
 
-I change some part of that almost every day: the prompt, a tool, the loop that drives the model, the agent. For months I had no way to tell whether a change made the diagnoses better or worse, other than reading incidents and forming an opinion. This is the story of the day I stopped doing that, and most of what I found wasn't in the model.
+In short: a small agent watches each Linux machine, and when a monitor fails, Kosken opens an incident. Fixed rules look at it first. If they can't settle it, a model diagnoses it with read-only checks and proposes one signed recipe, and a set of gates and, when needed, a person decide whether it runs. I wrote about the two earlier projects in [OpenRemedy: An Autonomous SRE for Linux Fleets](/2026/04/30/openremedy-introducing-the-project.md) and [nanoinfra: an AI Agent That Lives on My Own Boxes](/2026/08/28/nanoinfra-introducing-the-project.md).
+
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>The path of an incident</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
+<div class="mermaid">
+flowchart TD
+    A["Monitor on the machine<br/>a check fails several times in a row"] --> B["Signal<br/>a rule opens an incident"]
+    B --> C["Playbook (code)<br/>fixed rules run before the model"]
+    C -->|false positive or planned work| Z["Closed with no model call"]
+    C --> D["Triage (model)<br/>severity and class, a classifier checks it"]
+    D --> E["Diagnosis (model)<br/>read-only checks, notes of the machine, past incidents"]
+    E -->|no fault or no recipe| Y["Conclusion for a person"]
+    E -->|one signed recipe| F["Gates 1, 4, Guardian, 2, 5, 3 (code)<br/>allow, ask or deny"]
+    F -->|ask| G["Approval by a person"]
+    F -->|deny| Y
+    F -->|allow| H["Executor on the machine<br/>checks signatures, dry run, steps"]
+    G --> H
+    H --> I["Check of the fix<br/>verify step, then the signals clear"]
+    I --> J["Review by a person<br/>was the cause right, was the fix right"]
+    Y --> J
+    J -->|partly or wrong| K["Candidate eval case"]
+</div>
+</div>
+</div>
+
+That's a lot of parts that can change: the prompt, a tool, the loop that drives the model, a playbook, the agent. I change one of them almost every day. For months I had no way to tell whether a change made the diagnoses better or worse, other than reading incidents and forming an opinion. This is the story of the day I stopped doing that, and most of what I found wasn't in the model.
 
 ## It started with a Review tab
 
