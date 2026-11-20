@@ -14,22 +14,16 @@ In short: a small agent watches each Linux machine, and when a monitor fails, Ko
 <div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>The path of an incident</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
 <div class="cde-window-body">
 <div class="mermaid">
-flowchart TD
-    A["Monitor on the machine<br/>a check fails several times in a row"] --> B["Signal<br/>a rule opens an incident"]
-    B --> C["Playbook (code)<br/>fixed rules run before the model"]
-    C -->|false positive or planned work| Z["Closed with no model call"]
-    C --> D["Triage (model)<br/>severity and class, a classifier checks it"]
-    D --> E["Diagnosis (model)<br/>read-only checks, notes of the machine, past incidents"]
-    E -->|no fault or no recipe| Y["Conclusion for a person"]
-    E -->|one signed recipe| F["Gates 1, 4, Guardian, 2, 5, 3 (code)<br/>allow, ask or deny"]
-    F -->|ask| G["Approval by a person"]
-    F -->|deny| Y
-    F -->|allow| H["Executor on the machine<br/>checks signatures, dry run, steps"]
-    G --> H
-    H --> I["Check of the fix<br/>verify step, then the signals clear"]
-    I --> J["Review by a person<br/>was the cause right, was the fix right"]
-    Y --> J
-    J -->|partly or wrong| K["Candidate eval case"]
+flowchart TB
+    subgraph decide ["1. Decide what is wrong"]
+    direction LR
+    A["Monitor<br/>a check fails"] --> B["Signal<br/>opens an incident"] --> C["Playbook<br/>a false positive<br/>ends here"] --> D["Triage<br/>model"] --> E["Diagnosis<br/>model, read-only<br/>proposes a recipe"]
+    end
+    subgraph act ["2. Decide what runs"]
+    direction LR
+    F["Gates<br/>allow, ask<br/>or deny"] --> G["Approval<br/>when a gate asks"] --> H["Executor<br/>on the machine"] --> I["Check<br/>of the fix"] --> J["Review<br/>a miss becomes<br/>an eval case"]
+    end
+    decide --> act
 </div>
 </div>
 </div>
