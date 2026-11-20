@@ -136,9 +136,14 @@ I meant to change one thing at a time, so I could tell which fix did what. Then 
 
 This is the screen I'd been waiting for all day. It's the page of the second run, compared with the first one. The four cases that failed before now say "Now passes", and nothing went the other way. Every number at the top carries its "before": 50% to 100% of the cases, and 123,563 to 77,340 tokens per repeat.
 
-![The eval run page of diagnose@15 compared with the diagnose@14 run: 8 of 8 cases passed, cause right 96%, fix matches 100%, 0 wrong fixes, 77,340 tokens per repeat](/2026/11/19/sir-evals-a-lot-run.png)
+<div class="cde-window">
+<div class="cde-window-title"><div class="cde-window-btns"><div class="cde-window-btn">&#9866;</div></div><span>Eval run: diagnose@15 against diagnose@14</span><div class="cde-window-btns"><div class="cde-window-btn">&#9634;</div><div class="cde-window-btn">&#10005;</div></div></div>
+<div class="cde-window-body">
+<a href="/2026/11/19/sir-evals-a-lot-run.png"><img src="/2026/11/19/sir-evals-a-lot-run-top.png" alt="The eval run page of diagnose@15 compared with the diagnose@14 run: 8 of 8 cases passed, cause right 96%, fix matches 100%, 0 wrong fixes, 77,340 tokens per repeat" style="display:block;width:100%;max-width:100%;height:auto"></a>
+</div>
+</div>
 
-Each case has one dot per repeat. The red dot on the second worker case is a "partly", and the empty dot on the container case is the repeat where the grader didn't answer. A case passes when most of its repeats pass, so both cases still count, but those two dots are why I read the repeats and not only the green column.
+The full page, one click on the image, lists each case with one dot per repeat. The red dot on the second worker case is a "partly", and the empty dot on the container case is the repeat where the grader didn't answer. A case passes when most of its repeats pass, so both cases still count, but those two dots are why I read the repeats and not only the green column.
 
 Because I mixed the changes, I had to go back to the call lists to split the credit, and luckily each fix leaves its own mark. No repeat reached the limit this time, the highest was 28 calls, so the loop fix didn't do anything in this run. It's there for the next diagnosis that runs out. The replay fix shows up as calls answered "with other limits", up to five in a repeat, and each of those would have been a dead end and a retry before. The prompt shows up in the call count, which fell by half. A kinder replay stops the retries, but it can't make the model ask for less. Most repeats of the worker and memcached cases now finish in six or seven calls, close to those four steps.
 
